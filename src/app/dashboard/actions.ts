@@ -109,26 +109,6 @@ export async function startExam(params: {
 
   const chosenIds = ordered.slice(0, Math.min(params.numQuestions, ordered.length));
 
-  // Marca estas preguntas como "vistas" para el ciclo de no-repetición justo ahora,
-  // al generarlas -- igual que en la versión local. Así, aunque el examen se
-  // abandone a medias, ese conjunto no se te vuelve a repetir hasta agotar el resto.
-  // Se preserva seen/correct existentes (no se tocan aquí, solo la marca de tiempo).
-  const { data: existingStats } = await supabase
-    .from('question_stats')
-    .select('question_id, seen, correct')
-    .eq('user_id', user.id)
-    .in('question_id', chosenIds);
-  const existingMap = new Map((existingStats ?? []).map(r => [r.question_id, r]));
-  const nowIso = new Date().toISOString();
-  const upsertRows = chosenIds.map(id => ({
-    user_id: user.id,
-    question_id: id,
-    seen: existingMap.get(id)?.seen ?? 0,
-    correct: existingMap.get(id)?.correct ?? 0,
-    last_seen_at: nowIso,
-  }));
-  await supabase.from('question_stats').upsert(upsertRows, { onConflict: 'user_id,question_id' });
-
   const { data: questions } = await supabase
     .from('questions')
     .select('*')
@@ -156,6 +136,7 @@ export async function finishExam(payload: {
   flaggedIds: string[];
   source: string | null;
   topic: string | null;
+  affectsCycle: boolean;
 }): Promise<ExamAttempt> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -186,17 +167,19 @@ export async function finishExam(payload: {
 
   if (error) throw new Error(error.message);
 
-  // Actualiza el contador de aciertos por pregunta (para el repaso inteligente y las
-  // estadísticas de acierto). La marca de "última vez vista" que rige el ciclo de
-  // no-repetición NO se toca aquí -- ya se marcó al generar el examen (en
-  // startExam), para que valga aunque el examen se abandone a medias. Al no incluir
-  // last_seen_at en este upsert, Postgres deja esa columna tal cual estaba.
+  // Actualiza estadísticas por pregunta. El contador de aciertos (para el repaso
+  // inteligente y las estadísticas de acierto) se actualiza siempre, en cualquier
+  // tipo de examen. La marca de "última vez vista" que rige el ciclo de
+  // no-repetición SOLO se actualiza cuando el examen se termina de verdad
+  // (aparece en el historial) y era un examen normal generado desde cero --
+  // ni un examen abandonado a medias ni un repaso de falladas/marcadas/repaso
+  // inteligente/repetición cuentan para el ciclo.
   for (let i = 0; i < payload.questionIds.length; i++) {
     const qId = payload.questionIds[i];
     const wasCorrect = payload.correctByQuestion[i];
     const { data: existing } = await supabase
       .from('question_stats')
-      .select('seen, correct')
+      .select('seen, correct, last_seen_at')
       .eq('user_id', user.id)
       .eq('question_id', qId)
       .maybeSingle();
@@ -206,6 +189,7 @@ export async function finishExam(payload: {
       question_id: qId,
       seen: (existing?.seen ?? 0) + 1,
       correct: (existing?.correct ?? 0) + (wasCorrect ? 1 : 0),
+      last_seen_at: payload.affectsCycle ? new Date().toISOString() : (existing?.last_seen_at ?? null),
     }, { onConflict: 'user_id,question_id' });
   }
 
