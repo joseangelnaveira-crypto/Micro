@@ -26,6 +26,7 @@ type SavedProgress = {
   sourceFilter: string;
   topicFilter: string;
   clientUuid: string;
+  affectsCycle: boolean;
   savedAt: string;
 };
 
@@ -89,6 +90,7 @@ export default function DashboardApp({
   const [elapsedMs, setElapsedMs] = useState(0);
   const [finishing, setFinishing] = useState(false);
   const clientUuidRef = useRef<string>('');
+  const affectsCycleRef = useRef<boolean>(true);
   const segmentStartRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -182,6 +184,7 @@ export default function DashboardApp({
       examQuestions, currentIndex, selected, checked, results,
       flaggedIds: [...flagged], elapsedMs: currentElapsed(), passMark, numQuestions,
       sourceFilter, topicFilter, clientUuid: clientUuidRef.current,
+      affectsCycle: affectsCycleRef.current,
       savedAt: new Date().toISOString(),
       ...overrides,
     };
@@ -192,9 +195,10 @@ export default function DashboardApp({
     setSavedProgress(null);
   }
 
-  function handleStart(questions: Question[]) {
+  function handleStart(questions: Question[], affectsCycle = true) {
     if (questions.length === 0) return;
     clientUuidRef.current = crypto.randomUUID();
+    affectsCycleRef.current = affectsCycle;
     setExamQuestions(questions);
     setCurrentIndex(0);
     setSelected(null);
@@ -219,12 +223,7 @@ export default function DashboardApp({
       showAlert('No hay preguntas que coincidan con ese filtro de fuente y tema. Prueba a ampliarlo.');
       return;
     }
-    handleStart(questions);
-    getCycleProgress().then(setGlobalCycle);
-    getCycleProgress({
-      source: sourceFilter === 'Todas' ? null : sourceFilter,
-      topic: topicFilter === 'Todos' ? null : topicFilter,
-    }).then(setFilterCycle);
+    handleStart(questions, true);
   }
 
   async function handleSmartReview() {
@@ -239,18 +238,19 @@ export default function DashboardApp({
       showAlert('Todavía no hay suficiente historial de respuestas (con este filtro) para generar un repaso inteligente. Realiza al menos un examen primero.');
       return;
     }
-    handleStart(questions);
+    handleStart(questions, false);
   }
 
   async function handleRepeat(attempt: ExamAttempt) {
     const questions = await startReviewExam(attempt.question_ids);
     setPassMark(attempt.pass_mark);
-    handleStart(questions);
+    handleStart(questions, false);
   }
 
   function resumeProgress() {
     if (!savedProgress) return;
     clientUuidRef.current = savedProgress.clientUuid;
+    affectsCycleRef.current = savedProgress.affectsCycle ?? true;
     setExamQuestions(savedProgress.examQuestions);
     setCurrentIndex(savedProgress.currentIndex);
     setSelected(savedProgress.selected);
@@ -323,6 +323,7 @@ export default function DashboardApp({
       flaggedIds: [...flagged],
       source: sourceFilter === 'Todas' ? null : sourceFilter,
       topic: topicFilter === 'Todos' ? null : topicFilter,
+      affectsCycle: affectsCycleRef.current,
     });
 
     clearProgress();
@@ -363,14 +364,14 @@ export default function DashboardApp({
     const failedIds = results.filter(r => !r.isCorrect).map(r => r.question.id);
     if (failedIds.length === 0) return;
     const questions = await startReviewExam(failedIds);
-    handleStart(questions);
+    handleStart(questions, false);
   }
 
   async function reviewFlagged() {
     const ids = [...flagged];
     if (ids.length === 0) return;
     const questions = await startReviewExam(ids);
-    handleStart(questions);
+    handleStart(questions, false);
   }
 
   const [searchSource, setSearchSource] = useState<string>('Todas');
@@ -497,9 +498,14 @@ export default function DashboardApp({
         {modalNode}
         <div className="card pad-lg" style={{ textAlign: 'center' }}>
           <h2 className="section">Resultados del examen</h2>
-          <div className={`result-circle ${passed ? 'pass' : 'fail'}`}>
-            <b>{lastAttempt.score}%</b>
-            <span>{passed ? 'Apto' : 'No apto'}</span>
+          <div
+            className="result-ring"
+            style={{ '--score': lastAttempt.score, '--ring-color': passed ? 'var(--colony)' : 'var(--contam)' } as React.CSSProperties}
+          >
+            <div className="result-ring-inner">
+              <b>{lastAttempt.score}%</b>
+              <span>{passed ? 'Apto' : 'No apto'}</span>
+            </div>
           </div>
           <div className="stats-row" style={{ justifyContent: 'center' }}>
             <div className="stat"><b>{lastAttempt.correct}</b><span>correctas</span></div>
@@ -563,7 +569,7 @@ export default function DashboardApp({
   return (
     <div className="wrap wide">
       {modalNode}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div className="topbar">
         <div className="brand" style={{ marginBottom: 0 }}><h1>Academia de Microbiología</h1></div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button type="button" className="view-toggle" onClick={toggleDarkMode} title="Modo oscuro">
