@@ -86,6 +86,24 @@ button.ghost:hover:not(:disabled){ box-shadow: none; border-color: var(--ink-sof
 /* ---- Dashboard / examen ---- */
 .card.pad-lg{ padding: 24px; margin-bottom: 16px; transition: box-shadow .2s var(--ease); }
 
+.grid-2{ display:grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.grid-2 .card.pad-lg{ margin-bottom: 0; }
+@media (max-width: 760px){ .grid-2{ grid-template-columns: 1fr; } }
+
+.section-title{ display:flex; align-items:center; gap: 9px; margin-bottom: 6px; }
+.section-title .icon-badge{
+  width: 32px; height: 32px; border-radius: 10px; flex: 0 0 auto;
+  display:flex; align-items:center; justify-content:center;
+  background: rgba(142,111,224,0.10); color: var(--violet);
+}
+.section-title h2.section{ margin: 0; }
+
+.card.hero{
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface) 60%, rgba(142,111,224,0.05) 100%);
+  border-top: 3px solid var(--violet);
+}
+.card.hero .section-title .icon-badge{ background: var(--violet); color: #fff; }
+
 .topbar{
   position: sticky; top: 0; z-index: 50; display:flex; justify-content:space-between; align-items:center;
   padding: 14px 0; margin-bottom: 20px; background: var(--agar);
