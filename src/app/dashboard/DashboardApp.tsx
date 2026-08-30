@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Question, ExamAttempt, BankMeta } from '@/lib/exam-types';
 import { startExam, startReviewExam, startSmartReview, finishExam, getHistory, getStudyStats, searchQuestions, getCycleProgress, type StudyStats } from './actions';
+import { IconBook, IconFlask, IconChart, IconSearch, IconHistory } from '@/components/Icons';
 import SignOutButton from '@/components/SignOutButton';
 
 type Screen = 'home' | 'exam' | 'results';
@@ -594,75 +595,86 @@ export default function DashboardApp({
         </div>
       )}
 
-      <div className="card pad-lg">
-        <h2 className="section">Bienvenido, {displayName}</h2>
-        <div className="stats-row">
-          <div className="stat"><b>{meta.total}</b><span>preguntas en el banco</span></div>
-          <div className="stat"><b>{globalCycle ? globalCycle.unseen : '…'}</b><span>pendientes en el ciclo</span></div>
-        </div>
-        {meta.sources.length > 0 && (
-          <div style={{ marginTop: 10 }}>
-            <p className="hint" style={{ margin: '0 0 4px' }}>Preguntas por libro/lote:</p>
-            {meta.sources.map(s => (
-              <div key={s.name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '3px 0', color: 'var(--ink-soft)' }}>
-                <span>{s.name}</span><b style={{ color: 'var(--ink)' }}>{s.count}</b>
-              </div>
-            ))}
+      <div className="grid-2" style={{ marginBottom: 16 }}>
+        <div className="card pad-lg">
+          <div className="section-title">
+            <span className="icon-badge"><IconBook /></span>
+            <h2 className="section">Banco de preguntas</h2>
           </div>
-        )}
-      </div>
-
-      <div className="card pad-lg">
-        <h2 className="section">Generar examen</h2>
-        {meta.sources.length > 1 && (
-          <>
-            <label>Fuente</label>
-            <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}>
-              <option value="Todas">Todas las fuentes ({meta.total})</option>
-              {meta.sources.map(s => <option key={s.name} value={s.name}>{s.name} ({s.count})</option>)}
-            </select>
-          </>
-        )}
-        {meta.topics.length > 1 && (
-          <>
-            <label>Tema</label>
-            <select value={topicFilter} onChange={e => setTopicFilter(e.target.value)}>
-              <option value="Todos">Todos los temas</option>
-              {meta.topics.map(t => <option key={t.name} value={t.name}>{t.name} ({t.count})</option>)}
-            </select>
-          </>
-        )}
-        <label>Número de preguntas</label>
-        <div className="row" style={{ marginBottom: 14 }}>
-          <input type="number" min={1} value={numQuestions} onChange={e => setNumQuestions(Math.max(1, parseInt(e.target.value) || 1))} />
-          <button type="button" style={{ width: 'auto' }} disabled={starting || meta.total === 0} onClick={handleStartExam}>
-            {starting ? 'Generando…' : 'Empezar examen'}
-          </button>
+          <p className="hint" style={{ margin: '2px 0 14px' }}>Bienvenido, {displayName}</p>
+          <div className="stats-row">
+            <div className="stat"><b>{meta.total}</b><span>en el banco</span></div>
+            <div className="stat"><b>{globalCycle ? globalCycle.unseen : '…'}</b><span>pendientes ciclo</span></div>
+          </div>
+          {meta.sources.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <p className="hint" style={{ margin: '0 0 4px' }}>Preguntas por libro/lote:</p>
+              {meta.sources.map(s => (
+                <div key={s.name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '3px 0', color: 'var(--ink-soft)' }}>
+                  <span>{s.name}</span><b style={{ color: 'var(--ink)' }}>{s.count}</b>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        {meta.total === 0 ? (
-          <p className="hint">
-            Todavía no hay preguntas en el banco. {isAdmin ? (
-              <a href="/admin/questions" style={{ color: 'var(--violet)', fontWeight: 700 }}>Impórtalas desde el panel de administrador</a>
-            ) : 'Pídele al administrador que las suba.'}
-          </p>
-        ) : filterCycle && (
-          <p className="hint">
-            Se generará un examen con {Math.min(numQuestions, filterCycle.total)} de las {filterCycle.total} preguntas disponibles
-            {sourceFilter !== 'Todas' || topicFilter !== 'Todos' ? ' con este filtro' : ''} ({filterCycle.unseen} pendientes todavía en el ciclo).
-          </p>
-        )}
-        <label>Nota de corte (%)</label>
-        <input type="number" min={0} max={100} value={passMark} onChange={e => setPassMark(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))} style={{ marginBottom: 14 }} />
-        <button type="button" className="secondary block" disabled={starting || !smartAvailable} onClick={handleSmartReview}>
-          Repaso inteligente (prioriza las preguntas con más fallos)
-        </button>
-        {!smartAvailable && <p className="hint" style={{ marginTop: 8 }}>Disponible en cuanto hayas respondido alguna pregunta.</p>}
+
+        <div className="card pad-lg hero">
+          <div className="section-title">
+            <span className="icon-badge"><IconFlask /></span>
+            <h2 className="section">Generar examen</h2>
+          </div>
+          {meta.sources.length > 1 && (
+            <>
+              <label>Fuente</label>
+              <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}>
+                <option value="Todas">Todas las fuentes ({meta.total})</option>
+                {meta.sources.map(s => <option key={s.name} value={s.name}>{s.name} ({s.count})</option>)}
+              </select>
+            </>
+          )}
+          {meta.topics.length > 1 && (
+            <>
+              <label>Tema</label>
+              <select value={topicFilter} onChange={e => setTopicFilter(e.target.value)}>
+                <option value="Todos">Todos los temas</option>
+                {meta.topics.map(t => <option key={t.name} value={t.name}>{t.name} ({t.count})</option>)}
+              </select>
+            </>
+          )}
+          <label>Número de preguntas</label>
+          <div className="row" style={{ marginBottom: 14 }}>
+            <input type="number" min={1} value={numQuestions} onChange={e => setNumQuestions(Math.max(1, parseInt(e.target.value) || 1))} />
+            <button type="button" style={{ width: 'auto' }} disabled={starting || meta.total === 0} onClick={handleStartExam}>
+              {starting ? 'Generando…' : 'Empezar examen'}
+            </button>
+          </div>
+          {meta.total === 0 ? (
+            <p className="hint">
+              Todavía no hay preguntas en el banco. {isAdmin ? (
+                <a href="/admin/questions" style={{ color: 'var(--violet)', fontWeight: 700 }}>Impórtalas desde el panel de administrador</a>
+              ) : 'Pídele al administrador que las suba.'}
+            </p>
+          ) : filterCycle && (
+            <p className="hint">
+              Se generará un examen con {Math.min(numQuestions, filterCycle.total)} de las {filterCycle.total} preguntas disponibles
+              {sourceFilter !== 'Todas' || topicFilter !== 'Todos' ? ' con este filtro' : ''} ({filterCycle.unseen} pendientes todavía en el ciclo).
+            </p>
+          )}
+          <label>Nota de corte (%)</label>
+          <input type="number" min={0} max={100} value={passMark} onChange={e => setPassMark(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))} style={{ marginBottom: 14 }} />
+          <button type="button" className="secondary block" disabled={starting || !smartAvailable} onClick={handleSmartReview}>
+            Repaso inteligente (prioriza las preguntas con más fallos)
+          </button>
+          {!smartAvailable && <p className="hint" style={{ marginTop: 8 }}>Disponible en cuanto hayas respondido alguna pregunta.</p>}
+        </div>
       </div>
 
       {studyStats && studyStats.totalAnswered > 0 && (
         <div className="card pad-lg">
           <details className="card-details">
-            <summary>Estadísticas de estudio</summary>
+            <summary style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <IconChart /> Estadísticas de estudio
+            </summary>
             {(() => {
               const totalExams = history.length;
               const avgScore = totalExams ? Math.round(history.reduce((s, h) => s + h.score, 0) / totalExams) : null;
@@ -697,71 +709,76 @@ export default function DashboardApp({
         </div>
       )}
 
-      <div className="card pad-lg">
-        <details className="card-details">
-          <summary>Buscar en el banco de preguntas</summary>
-          {meta.sources.length > 1 && (
-            <>
-              <label>Fuente</label>
-              <select value={searchSource} onChange={e => { setSearchSource(e.target.value); runSearch(searchQuery, e.target.value, searchTopic); }}>
-                <option value="Todas">Todas las fuentes</option>
-                {meta.sources.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-              </select>
-            </>
-          )}
-          {meta.topics.length > 1 && (
-            <>
-              <label>Tema</label>
-              <select value={searchTopic} onChange={e => { setSearchTopic(e.target.value); runSearch(searchQuery, searchSource, e.target.value); }}>
-                <option value="Todos">Todos los temas</option>
-                {meta.topics.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
-              </select>
-            </>
-          )}
-          <input type="text" placeholder="Buscar por texto de pregunta, opción o explicación..." value={searchQuery} onChange={e => runSearch(e.target.value)} />
-          {searchQuery.trim().length >= 2 && (
-            <div className="search-results">
-              {searching ? (
-                <p className="hint">Buscando…</p>
-              ) : searchResults.length === 0 ? (
-                <p className="hint">Sin resultados para &quot;{searchQuery}&quot;.</p>
-              ) : (
-                <>
-                  <p className="hint" style={{ margin: '0 0 8px' }}>{searchResults.length} resultado{searchResults.length === 1 ? '' : 's'}</p>
-                  {searchResults.map(item => {
-                    const key = `option_${item.correct.toLowerCase()}` as 'option_a' | 'option_b' | 'option_c' | 'option_d';
-                    return (
-                      <div key={item.id} className="search-item">
-                        <div className="sq-text">{item.question}</div>
-                        <div className="sq-meta">✅ {item.correct}) {item[key]} · {item.source} · {item.topic}</div>
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-            </div>
-          )}
-        </details>
-      </div>
+      <div className="grid-2">
+        <div className="card pad-lg">
+          <details className="card-details">
+            <summary style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <IconSearch /> Buscar en el banco
+            </summary>
+            {meta.sources.length > 1 && (
+              <>
+                <label>Fuente</label>
+                <select value={searchSource} onChange={e => { setSearchSource(e.target.value); runSearch(searchQuery, e.target.value, searchTopic); }}>
+                  <option value="Todas">Todas las fuentes</option>
+                  {meta.sources.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                </select>
+              </>
+            )}
+            {meta.topics.length > 1 && (
+              <>
+                <label>Tema</label>
+                <select value={searchTopic} onChange={e => { setSearchTopic(e.target.value); runSearch(searchQuery, searchSource, e.target.value); }}>
+                  <option value="Todos">Todos los temas</option>
+                  {meta.topics.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+                </select>
+              </>
+            )}
+            <input type="text" placeholder="Buscar por texto de pregunta, opción o explicación..." value={searchQuery} onChange={e => runSearch(e.target.value)} />
+            {searchQuery.trim().length >= 2 && (
+              <div className="search-results">
+                {searching ? (
+                  <p className="hint">Buscando…</p>
+                ) : searchResults.length === 0 ? (
+                  <p className="hint">Sin resultados para &quot;{searchQuery}&quot;.</p>
+                ) : (
+                  <>
+                    <p className="hint" style={{ margin: '0 0 8px' }}>{searchResults.length} resultado{searchResults.length === 1 ? '' : 's'}</p>
+                    {searchResults.map(item => {
+                      const key = `option_${item.correct.toLowerCase()}` as 'option_a' | 'option_b' | 'option_c' | 'option_d';
+                      return (
+                        <div key={item.id} className="search-item">
+                          <div className="sq-text">{item.question}</div>
+                          <div className="sq-meta">✅ {item.correct}) {item[key]} · {item.source} · {item.topic}</div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+            )}
+          </details>
+        </div>
 
-      <div className="card pad-lg">
-        <details className="card-details">
-          <summary>Historial de exámenes</summary>
-          {loadingHistory ? (
-            <p className="hint">Cargando…</p>
-          ) : history.length === 0 ? (
-            <p className="hint">Todavía no has realizado ningún examen.</p>
-          ) : (
-            <div className="history-list">
-              {history.map(h => {
-                const passed = h.score >= h.pass_mark;
-                return (
-                  <div key={h.id} className="history-item">
-                    <div className="history-info">
-                      <span className="history-date">{formatDate(h.created_at)} · {formatDuration(h.duration_ms)}</span>
-                      <span className={`history-score ${passed ? 'ok' : 'ko'}`}>
-                        {h.correct}/{h.total} · {h.score}% {passed ? '· Apto' : '· No apto'}
-                      </span>
+        <div className="card pad-lg">
+          <details className="card-details">
+            <summary style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <IconHistory /> Historial de exámenes
+            </summary>
+            {loadingHistory ? (
+              <p className="hint">Cargando…</p>
+            ) : history.length === 0 ? (
+              <p className="hint">Todavía no has realizado ningún examen.</p>
+            ) : (
+              <div className="history-list">
+                {history.map(h => {
+                  const passed = h.score >= h.pass_mark;
+                  return (
+                    <div key={h.id} className="history-item">
+                      <div className="history-info">
+                        <span className="history-date">{formatDate(h.created_at)} · {formatDuration(h.duration_ms)}</span>
+                        <span className={`history-score ${passed ? 'ok' : 'ko'}`}>
+                          {h.correct}/{h.total} · {h.score}% {passed ? '· Apto' : '· No apto'}
+                        </span>
                       {(h.source_filter || h.topic_filter) && (
                         <span className="source-tag" style={{ marginTop: 4 }}>
                           {[h.source_filter, h.topic_filter].filter(Boolean).join(' · ')}
@@ -777,6 +794,7 @@ export default function DashboardApp({
             </div>
           )}
         </details>
+      </div>
       </div>
     </div>
   );
