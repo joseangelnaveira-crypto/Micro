@@ -1,0 +1,163 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:where(.dark-mode, .dark-mode *));
+
+:root{
+  --agar: #FFF6E7;
+  --dish-line: #F0DEBE;
+  --dish-line-soft: rgba(240,222,190,0.6);
+  --surface: #FFFFFF;
+  --ink: #241E3D;
+  --ink-soft: #5B5480;
+  --graphite: #8A8296;
+  --colony: #2FA97A;
+  --contam: #EF6351;
+  --amber: #F4A340;
+  --violet: #8E6FE0;
+
+  /* ---- Variables de shadcn/ui, mapeadas a nuestra propia paleta de arriba ---- */
+  --radius: 0.9rem;
+  --background: var(--agar);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--violet);
+  --secondary-foreground: #FFFFFF;
+  --muted: var(--dish-line);
+  --muted-foreground: var(--graphite);
+  --accent: #F5EFFC;
+  --accent-foreground: var(--violet);
+  --destructive: var(--contam);
+  --destructive-foreground: #FFFFFF;
+  --success: var(--colony);
+  --success-foreground: #FFFFFF;
+  --warning: var(--amber);
+  --warning-foreground: var(--ink);
+  --border: var(--dish-line-soft);
+  --input: var(--dish-line);
+  --ring: var(--violet);
+}
+
+.dark-mode{
+  --background: #171923;
+  --foreground: #ECE9F5;
+  --card: #1F2333;
+  --card-foreground: #ECE9F5;
+  --popover: #1F2333;
+  --popover-foreground: #ECE9F5;
+  --primary: #ECE9F5;
+  --primary-foreground: #14161F;
+  --secondary: #B29CFF;
+  --secondary-foreground: #14161F;
+  --muted: #2D3348;
+  --muted-foreground: #8B85AA;
+  --accent: rgba(178,156,255,0.14);
+  --accent-foreground: #B29CFF;
+  --destructive: #FF8272;
+  --destructive-foreground: #14161F;
+  --success: #3ED18C;
+  --success-foreground: #14161F;
+  --warning: #FFC168;
+  --warning-foreground: #14161F;
+  --border: rgba(45,51,72,0.7);
+  --input: #2D3348;
+  --ring: #B29CFF;
+}
+
+@theme inline{
+  --font-display: var(--font-display);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+}
+
+@layer base{
+  * { border-color: var(--border); }
+  body { background: var(--background); color: var(--foreground); }
+}
+
+*{ box-sizing: border-box; }
+html, body{ height: 100%; margin: 0; }
+body{
+  background:
+    radial-gradient(circle at 8% 12%, rgba(143,207,255,0.35), transparent 40%),
+    radial-gradient(circle at 92% 18%, rgba(244,163,64,0.22), transparent 38%),
+    radial-gradient(circle at 85% 88%, rgba(47,169,122,0.20), transparent 42%),
+    radial-gradient(circle at 12% 90%, rgba(239,99,81,0.14), transparent 40%),
+    var(--agar);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---- Modo oscuro (paleta base + fondo decorativo) ---- */
+body.dark-mode{
+  --agar: #171923;
+  --dish-line: #2D3348;
+  --dish-line-soft: rgba(45,51,72,0.7);
+  --surface: #1F2333;
+  --ink: #ECE9F5;
+  --ink-soft: #B7B2D4;
+  --graphite: #8B85AA;
+  --colony: #3ED18C;
+  --contam: #FF8272;
+  --amber: #FFC168;
+  --violet: #B29CFF;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(94,150,255,0.14), transparent 40%),
+    radial-gradient(circle at 92% 18%, rgba(255,193,104,0.10), transparent 38%),
+    radial-gradient(circle at 85% 88%, rgba(62,209,140,0.10), transparent 42%),
+    radial-gradient(circle at 12% 90%, rgba(255,130,114,0.08), transparent 40%),
+    var(--agar);
+}
+
+/* ---- Gráfica de evolución ---- */
+.trend-svg{ width: 100%; height: auto; display:block; margin-bottom: 8px; }
+.trend-grid{ stroke: var(--dish-line-soft); stroke-width: 1; }
+.trend-axis{ font-size: 9px; fill: var(--graphite); font-family: ui-monospace, Menlo, Consolas, monospace; }
+.trend-pass-line{ stroke: var(--amber); stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+.trend-line{ stroke: var(--violet); stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; opacity: .55; }
+.trend-avg-line{ stroke: var(--violet); stroke-width: 2.5; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.trend-dot{ stroke: var(--surface); stroke-width: 1.5; }
+.trend-dot.ok{ fill: var(--colony); }
+.trend-dot.ko{ fill: var(--contam); }
+.trend-legend{ display:flex; flex-wrap:wrap; gap: 12px; font-size: 11px; color: var(--ink-soft); margin-bottom: 14px; }
+.trend-legend span{ display:flex; align-items:center; gap: 5px; }
+.trend-swatch{ width: 14px; height: 3px; border-radius: 2px; display:inline-block; }
+.trend-swatch.line{ background: var(--violet); opacity: .55; }
+.trend-swatch.avg{ background: var(--violet); }
+.trend-swatch.pass{ background: var(--amber); }
+
+@media (prefers-reduced-motion: reduce){
+  *{ transition: none !important; animation: none !important; }
+}

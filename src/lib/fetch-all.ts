@@ -1,0 +1,48 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+type Filters = { source?: string | null; topic?: string | null; userId?: string; onlySeen?: boolean };
+
+/**
+ * Supabase/PostgREST solo devuelve 1000 filas por consulta por defecto. Esta función
+ * pagina automáticamente hasta traer todo, para no truncar silenciosamente listas grandes
+ * (por ejemplo, las 4837 preguntas del banco).
+ */
+export async function fetchAllRows<T>(
+  supabase: SupabaseClient,
+  table: string,
+  select: string,
+  filters?: Filters
+): Promise<T[]> {
+  const PAGE = 1000;
+  const all: T[] = [];
+  let from = 0;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    let q = supabase.from(table).select(select).range(from, from + PAGE - 1);
+    if (filters?.source) q = q.eq('source', filters.source);
+    if (filters?.topic) q = q.eq('topic', filters.topic);
+    if (filters?.userId) q = q.eq('user_id', filters.userId);
+    if (filters?.onlySeen) q = q.not('last_seen_at', 'is', null);
+
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+
+    all.push(...(data as T[]));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+
+  return all;
+}
+
+export async function fetchAllIds(
+  supabase: SupabaseClient,
+  table: string,
+  filters?: Filters
+): Promise<string[]> {
+  const idField = table === 'question_stats' ? 'question_id' : 'id';
+  const rows = await fetchAllRows<Record<string, string>>(supabase, table, idField, filters);
+  return rows.map(r => r.id ?? r.question_id);
+}
