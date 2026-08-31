@@ -11,6 +11,9 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Beaker, MailCheck } from 'lucide-react';
 
+// Desactivado temporalmente a petición del usuario -- no se borra el flujo, solo se oculta.
+const GOOGLE_SIGNUP_ENABLED = false;
+
 export default function SignupPage() {
   const supabase = createClient();
   const [name, setName] = useState('');
@@ -95,13 +98,17 @@ export default function SignupPage() {
             </div>
           )}
 
-          <Button type="button" variant="google" block onClick={handleGoogle} disabled={loading !== null}>
-            {loading === 'google' ? 'Conectando…' : 'Registrarme con Google'}
-          </Button>
+          {GOOGLE_SIGNUP_ENABLED && (
+            <>
+              <Button type="button" variant="google" block onClick={handleGoogle} disabled={loading !== null}>
+                {loading === 'google' ? 'Conectando…' : 'Registrarme con Google'}
+              </Button>
 
-          <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-            <Separator className="flex-1" /> o con tu email <Separator className="flex-1" />
-          </div>
+              <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+                <Separator className="flex-1" /> o con tu email <Separator className="flex-1" />
+              </div>
+            </>
+          )}
 
           <form onSubmit={handleEmailSignup} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
