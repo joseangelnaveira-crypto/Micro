@@ -138,6 +138,7 @@ export async function finishExam(payload: FinishExamPayload): Promise<ExamAttemp
       source_filter: payload.source,
       topic_filter: payload.topic,
       client_uuid: payload.clientUuid,
+      affects_cycle: payload.affectsCycle,
     })
     .select()
     .single();
@@ -178,18 +179,103 @@ export async function finishExam(payload: FinishExamPayload): Promise<ExamAttemp
   return attempt as ExamAttempt;
 }
 
+/**
+ * Borrar un examen deshace exactamente lo que finishExam() sumó al completarlo:
+ * descuenta seen/correct de question_stats, y si el intento contaba para el ciclo
+ * (affects_cycle), recalcula last_seen_at a partir de los demás intentos del usuario
+ * que también afecten al ciclo y toquen esa pregunta (o la deja sin ver si no queda
+ * ninguno). La corrección de cada respuesta se recalcula contra la pregunta actual del
+ * banco -- si el admin ha editado la respuesta correcta desde entonces, el descuento de
+ * "correct" puede no coincidir exactamente con lo que se sumó en su momento.
+ */
 export async function deleteExamAttempt(id: string): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('No autenticado');
 
-  const { error } = await supabase
+  const { data: attempt, error: fetchError } = await supabase
+    .from('exam_attempts')
+    .select('question_ids, answers, affects_cycle')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (fetchError) throw new Error(fetchError.message);
+  if (!attempt) return;
+
+  const questionIds: string[] = attempt.question_ids ?? [];
+  const answers: (string | null)[] = attempt.answers ?? [];
+  const uniqueIds = [...new Set(questionIds)];
+
+  if (uniqueIds.length > 0) {
+    const { data: questionRows } = await supabase
+      .from('questions')
+      .select('id, correct')
+      .in('id', uniqueIds);
+    const correctByQuestion = new Map((questionRows ?? []).map(q => [q.id, q.correct]));
+
+    const { data: statsRows } = await supabase
+      .from('question_stats')
+      .select('question_id, seen, correct, last_seen_at')
+      .eq('user_id', user.id)
+      .in('question_id', uniqueIds);
+    const statsByQuestion = new Map((statsRows ?? []).map(s => [s.question_id, s]));
+
+    // Nº de veces que cada pregunta aparece en este intento (y cuántas fueron correctas),
+    // para descontar seen/correct exactamente lo que se sumó al completarlo.
+    const deltaSeen = new Map<string, number>();
+    const deltaCorrect = new Map<string, number>();
+    for (let i = 0; i < questionIds.length; i++) {
+      const qId = questionIds[i];
+      deltaSeen.set(qId, (deltaSeen.get(qId) ?? 0) + 1);
+      if (answers[i] && answers[i] === correctByQuestion.get(qId)) {
+        deltaCorrect.set(qId, (deltaCorrect.get(qId) ?? 0) + 1);
+      }
+    }
+
+    const othersByQuestion = new Map<string, string[]>();
+    if (attempt.affects_cycle) {
+      const uniqueIdSet = new Set(uniqueIds);
+      const { data: others } = await supabase
+        .from('exam_attempts')
+        .select('question_ids, created_at')
+        .eq('user_id', user.id)
+        .eq('affects_cycle', true)
+        .neq('id', id)
+        .overlaps('question_ids', uniqueIds);
+      for (const o of others ?? []) {
+        for (const qId of o.question_ids as string[]) {
+          if (!uniqueIdSet.has(qId)) continue;
+          const list = othersByQuestion.get(qId) ?? [];
+          list.push(o.created_at);
+          othersByQuestion.set(qId, list);
+        }
+      }
+    }
+
+    const updates = uniqueIds.map(qId => {
+      const existing = statsByQuestion.get(qId);
+      const seen = Math.max(0, (existing?.seen ?? 0) - (deltaSeen.get(qId) ?? 0));
+      const correct = Math.max(0, (existing?.correct ?? 0) - (deltaCorrect.get(qId) ?? 0));
+      let last_seen_at = existing?.last_seen_at ?? null;
+      if (attempt.affects_cycle) {
+        const others = othersByQuestion.get(qId) ?? [];
+        last_seen_at = others.length ? others.reduce((max, d) => (d > max ? d : max)) : null;
+      }
+      return { user_id: user.id, question_id: qId, seen, correct, last_seen_at };
+    });
+
+    const { error: upsertError } = await supabase
+      .from('question_stats')
+      .upsert(updates, { onConflict: 'user_id,question_id' });
+    if (upsertError) throw new Error(upsertError.message);
+  }
+
+  const { error: deleteError } = await supabase
     .from('exam_attempts')
     .delete()
     .eq('id', id)
     .eq('user_id', user.id);
-
-  if (error) throw new Error(error.message);
+  if (deleteError) throw new Error(deleteError.message);
 }
 
 export async function getHistory(limit = 50): Promise<ExamAttempt[]> {

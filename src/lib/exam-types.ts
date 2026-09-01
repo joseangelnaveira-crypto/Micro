@@ -30,6 +30,7 @@ export type ExamAttempt = {
   topic_filter: string | null;
   client_uuid: string;
   created_at: string;
+  affects_cycle: boolean;
 };
 
 export type BankMeta = {

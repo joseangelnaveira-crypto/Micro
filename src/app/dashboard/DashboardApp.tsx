@@ -448,6 +448,7 @@ export default function DashboardApp({
         topic_filter: payload.topic,
         client_uuid: payload.clientUuid,
         created_at: new Date().toISOString(),
+        affects_cycle: payload.affectsCycle,
       };
     }
 
