@@ -9,6 +9,9 @@ export type Question = {
   explanation: string;
   source: string;
   topic: string;
+  image_url: string | null;
+  source_page: number | null;
+  source_url: string | null;
 };
 
 export type ExamAttempt = {

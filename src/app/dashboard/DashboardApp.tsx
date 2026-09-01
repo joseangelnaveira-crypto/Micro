@@ -590,6 +590,13 @@ export default function DashboardApp({
                 {isFlagged ? '🚩 Marcada' : '🏳️ Marcar'}
               </Button>
             </div>
+            {q.image_url && (
+              <img
+                src={q.image_url}
+                alt=""
+                className="mb-4 max-h-[280px] w-full rounded-2xl border border-border object-contain bg-background"
+              />
+            )}
             <p className="font-display mb-5 text-xl italic leading-relaxed">{q.question}</p>
 
             <div className="flex flex-col gap-2">
@@ -638,6 +645,16 @@ export default function DashboardApp({
                   {selected === q.correct ? 'Respuesta correcta' : `Respuesta incorrecta · la correcta es ${q.correct}`}
                 </span>
                 <span className="text-foreground">{q.explanation || 'Sin explicación disponible para esta pregunta.'}</span>
+                {(q.source_page || q.source_url) && (
+                  <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/60 pt-2.5 text-[12.5px] text-muted-foreground">
+                    {q.source_page && <span>Página {q.source_page} · {q.source}</span>}
+                    {q.source_url && (
+                      <a href={q.source_url} target="_blank" rel="noopener noreferrer" className="font-semibold text-secondary hover:underline">
+                        Leer más ↗
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
