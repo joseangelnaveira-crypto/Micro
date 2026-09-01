@@ -608,7 +608,7 @@ export default function DashboardApp({
                 className="mb-4 max-h-[280px] w-full rounded-2xl border border-border object-contain bg-background"
               />
             )}
-            <p className="font-display mb-5 text-xl italic leading-relaxed">{q.question}</p>
+            <p className="mb-5 text-xl font-bold leading-relaxed tracking-tight">{q.question}</p>
 
             <div className="flex flex-col gap-2">
               {options.map(([letter, text]) => {
