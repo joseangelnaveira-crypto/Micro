@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Question, ExamAttempt, BankMeta, FinishExamPayload } from '@/lib/exam-types';
-import { startExam, startReviewExam, startSmartReview, finishExam, getHistory, getStudyStats, searchQuestions, getCycleProgress, type StudyStats } from './actions';
+import { startExam, startReviewExam, startSmartReview, finishExam, getHistory, getStudyStats, searchQuestions, getCycleProgress, deleteExamAttempt, type StudyStats } from './actions';
 import {
   offlineStartExam, offlineStartReviewExam, offlineStartSmartReview, offlineSearchQuestions,
 } from '@/lib/offline/exam-engine';
@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Sun, Moon, WifiOff } from 'lucide-react';
+import { Sun, Moon, WifiOff, Trash2 } from 'lucide-react';
 
 type Screen = 'home' | 'exam' | 'results';
 
@@ -338,6 +338,17 @@ export default function DashboardApp({
       : await offlineStartReviewExam(attempt.question_ids);
     setPassMark(attempt.pass_mark);
     handleStart(questions, false);
+  }
+
+  function handleDeleteAttempt(attempt: ExamAttempt) {
+    showConfirm(
+      '¿Eliminar este examen del historial? Esta acción no se puede deshacer.',
+      async () => {
+        await deleteExamAttempt(attempt.id);
+        refreshHistory();
+      },
+      { confirmLabel: 'Eliminar', danger: true }
+    );
   }
 
   function resumeProgress() {
@@ -1070,9 +1081,21 @@ export default function DashboardApp({
                             </Badge>
                           )}
                         </div>
-                        <Button type="button" variant="secondary" size="auto" onClick={() => handleRepeat(h)}>
-                          ↻ Repetir
-                        </Button>
+                        <div className="flex items-center gap-1.5">
+                          <Button type="button" variant="secondary" size="auto" onClick={() => handleRepeat(h)}>
+                            ↻ Repetir
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            title="Eliminar examen"
+                            onClick={() => handleDeleteAttempt(h)}
+                            className="text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
                       </div>
                     );
                   })}

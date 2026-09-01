@@ -178,6 +178,20 @@ export async function finishExam(payload: FinishExamPayload): Promise<ExamAttemp
   return attempt as ExamAttempt;
 }
 
+export async function deleteExamAttempt(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('No autenticado');
+
+  const { error } = await supabase
+    .from('exam_attempts')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function getHistory(limit = 50): Promise<ExamAttempt[]> {
   const supabase = await createClient();
   const { data } = await supabase
