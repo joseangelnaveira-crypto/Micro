@@ -1,21 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { importQuestions, deleteSource, exportBankText, type SourceBreakdown } from '../actions';
+import { importQuestions, deleteSource, exportBankText, resolveQuestionReport, type SourceBreakdown, type QuestionReport } from '../actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { IconUpload } from '@/components/Icons';
 
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+    ' · ' + new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+}
+
 export default function QuestionsAdmin({
-  initialBreakdown,
+  initialBreakdown, initialReports,
 }: {
   initialBreakdown: { total: number; sources: SourceBreakdown[] };
+  initialReports: QuestionReport[];
 }) {
   const [breakdown, setBreakdown] = useState(initialBreakdown);
+  const [reports, setReports] = useState(initialReports);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [source, setSource] = useState('');
   const [mode, setMode] = useState<'append' | 'replace_source'>('append');
@@ -90,8 +99,52 @@ export default function QuestionsAdmin({
     setBusy(false);
   }
 
+  async function handleResolveReport(id: string) {
+    setResolvingId(id);
+    try {
+      await resolveQuestionReport(id);
+      setReports(prev => prev.filter(r => r.id !== id));
+    } catch (err) {
+      setMessage(`❌ Error: ${err instanceof Error ? err.message : 'desconocido'}`);
+    }
+    setResolvingId(null);
+  }
+
   return (
     <div className="flex flex-col gap-4">
+      {reports.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2.5">
+              <Badge variant="destructive">{reports.length}</Badge>
+              <CardTitle>Errores reportados</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {reports.map(r => (
+              <div key={r.id} className="rounded-2xl border border-border p-3.5">
+                <p className="mb-1.5 text-[13.5px] font-semibold leading-snug">{r.question_text}</p>
+                <p className="mb-2 text-[13px] leading-relaxed text-destructive">{r.reason}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11.5px] text-muted-foreground">
+                    {r.reporter_email ?? 'usuario desconocido'} · {formatDate(r.created_at)}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={resolvingId === r.id}
+                    onClick={() => handleResolveReport(r.id)}
+                  >
+                    {resolvingId === r.id ? 'Marcando…' : 'Marcar resuelto'}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2.5">

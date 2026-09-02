@@ -109,6 +109,27 @@ volver a abrir la app igual. Piezas clave:
   conocido del servidor offline (no se recalculan desde la caché); `/admin/*` no tiene
   soporte offline. Sin aviso de "hay una versión nueva, ¿recargar?" para el SW todavía.
 
+## Reportar errores en preguntas y recordatorios por inactividad (COMPLETADO)
+
+- **Reportar error**: botón en la pantalla de examen (junto a "Marcar") que guarda
+  `pregunta + motivo` en `question_reports` (tabla nueva, RLS: cualquier aprobado inserta
+  las suyas, solo el admin las lee/gestiona). El admin las revisa en `/admin/questions`
+  ("Errores reportados") y las marca resueltas — no toca el flujo de examen del usuario.
+  Distinto de "Marcar", que es solo repaso personal y no llega al admin.
+- **Recordatorios por inactividad**: notificaciones Web Push reales (no solo la UI).
+  - `src/lib/push-client.ts` (cliente) + `src/app/dashboard/push-actions.ts` (guarda la
+    suscripción en `push_subscriptions`). Botón de campana en la cabecera del dashboard.
+  - `public/sw.js` ya escucha `push`/`notificationclick`.
+  - `src/app/api/send-reminders/route.ts`: lo llama el cron de Vercel (`vercel.json`, una
+    vez al día) protegido por `CRON_SECRET`. Avisa a usuarios aprobados con más de 3 días
+    sin completar un examen y que tengan notificaciones activadas, sin repetir el aviso
+    en menos de 3 días (cooldown vía `profiles.last_reminder_sent_at`).
+  - Necesita variables de entorno propias en Vercel (no solo en `.env.local`):
+    `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET`
+    (generadas con `npx web-push generate-vapid-keys --json`).
+  - `src/proxy.ts` excluye `/api/` del guard de autenticación -- si no, el cron (sin sesión
+    de usuario) sería redirigido a `/login` en vez de llegar a la ruta.
+
 ## Posiblemente pendiente
 
 - Penalización por fallo configurable, cuenta atrás con tiempo límite real de examen, cuenta

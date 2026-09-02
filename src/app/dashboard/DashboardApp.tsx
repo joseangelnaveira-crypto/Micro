@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Question, ExamAttempt, BankMeta, FinishExamPayload } from '@/lib/exam-types';
-import { startExam, startReviewExam, startSmartReview, finishExam, getHistory, getStudyStats, searchQuestions, getCycleProgress, deleteExamAttempt, type StudyStats } from './actions';
+import { startExam, startReviewExam, startSmartReview, finishExam, getHistory, getStudyStats, searchQuestions, getCycleProgress, deleteExamAttempt, reportQuestionError, type StudyStats } from './actions';
 import {
   offlineStartExam, offlineStartReviewExam, offlineStartSmartReview, offlineSearchQuestions,
 } from '@/lib/offline/exam-engine';
@@ -15,10 +15,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Sun, Moon, WifiOff, Trash2 } from 'lucide-react';
+import { Sun, Moon, WifiOff, Trash2, Bell, BellOff } from 'lucide-react';
+import { hasPushSubscription } from './push-actions';
+import { enableReminders, disableReminders } from '@/lib/push-client';
 
 type Screen = 'home' | 'exam' | 'results';
 
@@ -143,6 +146,8 @@ export default function DashboardApp({
   const [isOnline, setIsOnline] = useState(true);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
+  const [remindersEnabled, setRemindersEnabled] = useState(false);
+  const [remindersBusy, setRemindersBusy] = useState(false);
 
   const [modal, setModal] = useState<Modal | null>(null);
   function showConfirm(message: string, onConfirm: () => void, opts?: { confirmLabel?: string; danger?: boolean }) {
@@ -150,6 +155,24 @@ export default function DashboardApp({
   }
   function showAlert(message: string) {
     setModal({ message, type: 'alert' });
+  }
+
+  const [reportingQuestionId, setReportingQuestionId] = useState<string | null>(null);
+  const [reportReason, setReportReason] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+
+  async function submitReport() {
+    if (!reportingQuestionId || !reportReason.trim()) return;
+    setReportSubmitting(true);
+    try {
+      await reportQuestionError(reportingQuestionId, reportReason);
+      setReportingQuestionId(null);
+      setReportReason('');
+      showAlert('Gracias, el administrador revisará esta pregunta.');
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'No se ha podido enviar el reporte.');
+    }
+    setReportSubmitting(false);
   }
 
   async function syncBankIfNeeded() {
@@ -183,6 +206,7 @@ export default function DashboardApp({
       setLoadingHistory(false);
     }
     hasPendingSync().then(setPendingSyncCount);
+    hasPushSubscription().then(setRemindersEnabled);
 
     function handleOnline() {
       setIsOnline(true);
@@ -228,6 +252,23 @@ export default function DashboardApp({
       try { localStorage.setItem(DARK_MODE_KEY, next ? '1' : '0'); } catch { /* noop */ }
       return next;
     });
+  }
+
+  async function toggleReminders() {
+    setRemindersBusy(true);
+    try {
+      if (remindersEnabled) {
+        await disableReminders();
+        setRemindersEnabled(false);
+      } else {
+        const result = await enableReminders();
+        if (result.ok) setRemindersEnabled(true);
+        else showAlert(result.reason ?? 'No se han podido activar los recordatorios.');
+      }
+    } catch {
+      showAlert('No se han podido cambiar los recordatorios. Inténtalo de nuevo.');
+    }
+    setRemindersBusy(false);
   }
 
   async function refreshHistory() {
@@ -560,6 +601,26 @@ export default function DashboardApp({
     return (
       <div className={container}>
         {modalNode}
+        <Dialog open={!!reportingQuestionId} onOpenChange={(open) => { if (!open) setReportingQuestionId(null); }}>
+          <DialogContent className="max-w-[420px]">
+            <DialogHeader>
+              <DialogTitle>Reportar error en esta pregunta</DialogTitle>
+            </DialogHeader>
+            <Textarea
+              rows={4}
+              autoFocus
+              placeholder="¿Qué está mal? (respuesta incorrecta, errata, explicación confusa...)"
+              value={reportReason}
+              onChange={e => setReportReason(e.target.value)}
+            />
+            <DialogFooter>
+              <Button type="button" variant="ghost" size="auto" onClick={() => setReportingQuestionId(null)}>Cancelar</Button>
+              <Button type="button" size="auto" disabled={reportSubmitting || !reportReason.trim()} onClick={submitReport}>
+                {reportSubmitting ? 'Enviando…' : 'Enviar'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Card>
           <CardContent className="pt-6">
             <div className="mb-1.5 flex justify-between font-mono text-xs font-semibold text-muted-foreground">
@@ -592,15 +653,26 @@ export default function DashboardApp({
             {composition.length > 1 && <CompositionTags composition={composition} className="mb-3.5" />}
             <div className="mb-2.5 flex items-center justify-between gap-2">
               <Badge variant="secondary">{q.source} · {q.topic}</Badge>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => toggleFlag(q.id)}
-                className={isFlagged ? 'border-warning bg-warning/15 text-[#8a5a00] hover:bg-warning/20' : undefined}
-              >
-                {isFlagged ? '🚩 Marcada' : '🏳️ Marcar'}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground"
+                  onClick={() => { setReportingQuestionId(q.id); setReportReason(''); }}
+                >
+                  Reportar error
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toggleFlag(q.id)}
+                  className={isFlagged ? 'border-warning bg-warning/15 text-[#8a5a00] hover:bg-warning/20' : undefined}
+                >
+                  {isFlagged ? '🚩 Marcada' : '🏳️ Marcar'}
+                </Button>
+              </div>
             </div>
             {q.image_url && (
               <img
@@ -775,6 +847,16 @@ export default function DashboardApp({
           <h1 className="font-display text-xl italic tracking-normal">Academia de Microbiología</h1>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            disabled={remindersBusy}
+            onClick={toggleReminders}
+            title={remindersEnabled ? 'Desactivar recordatorios' : 'Avisarme si dejo de estudiar'}
+          >
+            {remindersEnabled ? <Bell className="size-4" /> : <BellOff className="size-4" />}
+          </Button>
           <Button type="button" variant="outline" size="icon" onClick={toggleDarkMode} title="Modo oscuro">
             {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>

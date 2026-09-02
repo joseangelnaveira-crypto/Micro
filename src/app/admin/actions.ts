@@ -132,6 +132,52 @@ export async function importQuestions(params: {
   return { inserted, skipped, total: totalBlocks };
 }
 
+export type QuestionReport = {
+  id: string;
+  question_id: string;
+  reason: string;
+  created_at: string;
+  reporter_email: string | null;
+  question_text: string;
+};
+
+export async function getQuestionReports(): Promise<QuestionReport[]> {
+  const { supabase } = await requireAdmin();
+
+  const { data: reports, error } = await supabase
+    .from('question_reports')
+    .select('id, question_id, user_id, reason, created_at')
+    .eq('resolved', false)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  if (!reports || reports.length === 0) return [];
+
+  const questionIds = [...new Set(reports.map(r => r.question_id))];
+  const userIds = [...new Set(reports.map(r => r.user_id))];
+
+  const [{ data: questions }, { data: profiles }] = await Promise.all([
+    supabase.from('questions').select('id, question').in('id', questionIds),
+    supabase.from('profiles').select('id, email').in('id', userIds),
+  ]);
+  const questionById = new Map((questions ?? []).map(q => [q.id, q.question]));
+  const emailById = new Map((profiles ?? []).map(p => [p.id, p.email]));
+
+  return reports.map(r => ({
+    id: r.id,
+    question_id: r.question_id,
+    reason: r.reason,
+    created_at: r.created_at,
+    reporter_email: emailById.get(r.user_id) ?? null,
+    question_text: questionById.get(r.question_id) ?? '(pregunta eliminada)',
+  }));
+}
+
+export async function resolveQuestionReport(id: string): Promise<void> {
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase.from('question_reports').update({ resolved: true }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 export async function deleteSource(source: string): Promise<void> {
   const { supabase } = await requireAdmin();
   const { error } = await supabase.from('questions').delete().eq('source', source);
