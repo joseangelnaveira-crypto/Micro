@@ -143,6 +143,21 @@ volver a abrir la app igual. Piezas clave:
   "estable"). Verde si por encima de la nota de corte, amarillo si por debajo.
   Reutiliza `movingAvg` y `avgPassMark` ya calculados, sin llamadas nuevas.
 
+## Accesibilidad, botón instalar app e icono correcto/incorrecto (COMPLETADO)
+
+- **Icono ✓/✕** en el círculo de la letra al responder (en vez de solo el color de fondo),
+  con `aria-label` explícito. Cumple la regla "el color nunca debe ser el único canal".
+- **Instalar app**: nuevo `src/components/InstallPWAButton.tsx`. En Chromium captura
+  `beforeinstallprompt` y ofrece un botón "Instalar app" en la cabecera; en iOS Safari,
+  que no expone ese evento, abre un diálogo con las instrucciones ilustradas de
+  "Compartir → Añadir a pantalla de inicio". Se oculta solo si ya está instalada
+  (`display-mode: standalone`).
+- **Paleta ajustada para WCAG AA (4.5:1)**: `--graphite`, `--colony`, `--contam`,
+  `--violet` en modo claro y `--graphite` en modo oscuro se oscurecieron para pasar el
+  ratio de contraste como color de texto sobre `--surface` y `--agar` (antes varios
+  fallaban entre 3.0-4.5). Los fondos con opacidad (`bg-success/10`, etc.) conservan
+  el tono visual porque componen sobre blanco.
+
 ## Posiblemente pendiente
 
 - Penalización por fallo configurable, cuenta atrás con tiempo límite real de examen, cuenta

@@ -7,6 +7,7 @@ import {
   offlineStartExam, offlineStartReviewExam, offlineStartSmartReview, offlineSearchQuestions,
 } from '@/lib/offline/exam-engine';
 import { isBankReady, downloadBank, queueAttempt, hasPendingSync, drainQueue } from '@/lib/offline/sync';
+import InstallPWAButton from '@/components/InstallPWAButton';
 import { scoreAttempt } from '@/lib/exam-utils';
 import { IconBook, IconFlask, IconChart, IconSearch, IconHistory, IconPetri } from '@/components/Icons';
 import SignOutButton from '@/components/SignOutButton';
@@ -19,7 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Sun, Moon, WifiOff, Trash2, Bell, BellOff } from 'lucide-react';
+import { Sun, Moon, WifiOff, Trash2, Bell, BellOff, Check, X } from 'lucide-react';
 import { hasPushSubscription } from './push-actions';
 import { enableReminders, disableReminders } from '@/lib/push-client';
 
@@ -709,8 +710,21 @@ export default function DashboardApp({
                         checked && letter === q.correct && 'bg-success text-success-foreground',
                         checked && letter === selected && letter !== q.correct && 'bg-destructive text-destructive-foreground'
                       )}
+                      aria-label={
+                        checked && letter === q.correct
+                          ? `${letter} — respuesta correcta`
+                          : checked && letter === selected && letter !== q.correct
+                            ? `${letter} — respuesta incorrecta`
+                            : letter
+                      }
                     >
-                      {letter}
+                      {checked && letter === q.correct ? (
+                        <Check className="size-4" strokeWidth={3} />
+                      ) : checked && letter === selected && letter !== q.correct ? (
+                        <X className="size-4" strokeWidth={3} />
+                      ) : (
+                        letter
+                      )}
                     </span>
                     <span>{text}</span>
                   </button>
@@ -847,6 +861,7 @@ export default function DashboardApp({
           <h1 className="font-display text-xl italic tracking-normal">Academia de Microbiología</h1>
         </div>
         <div className="flex items-center gap-2">
+          <InstallPWAButton />
           <Button
             type="button"
             variant="outline"

@@ -10,11 +10,11 @@
   --surface: #FFFFFF;
   --ink: #241E3D;
   --ink-soft: #5B5480;
-  --graphite: #8A8296;
-  --colony: #2FA97A;
-  --contam: #EF6351;
+  --graphite: #5B5480;
+  --colony: #1B7A50;
+  --contam: #C13A2C;
   --amber: #F4A340;
-  --violet: #8E6FE0;
+  --violet: #6D45D3;
 
   /* ---- Variables de shadcn/ui, mapeadas a nuestra propia paleta de arriba ---- */
   --radius: 0.9rem;
@@ -128,7 +128,7 @@ body.dark-mode{
   --surface: #1F2333;
   --ink: #ECE9F5;
   --ink-soft: #B7B2D4;
-  --graphite: #8B85AA;
+  --graphite: #A7A1C4;
   --colony: #3ED18C;
   --contam: #FF8272;
   --amber: #FFC168;
