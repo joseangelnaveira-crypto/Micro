@@ -172,6 +172,88 @@ export async function getQuestionReports(): Promise<QuestionReport[]> {
   }));
 }
 
+export type QuestionEdit = {
+  id: string;
+  question_id: string;
+  edited_by: string | null;
+  editor_email: string | null;
+  before_snapshot: Record<string, unknown>;
+  created_at: string;
+};
+
+export type QuestionEditableFields = {
+  question: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct: string;
+  explanation: string;
+  source: string;
+  topic: string;
+};
+
+export async function getQuestion(id: string): Promise<QuestionEditableFields> {
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase
+    .from('questions')
+    .select('question, option_a, option_b, option_c, option_d, correct, explanation, source, topic')
+    .eq('id', id)
+    .single();
+  if (error) throw new Error(error.message);
+  return data as QuestionEditableFields;
+}
+
+export async function updateQuestion(id: string, patch: QuestionEditableFields): Promise<void> {
+  const { supabase, userId } = await requireAdmin();
+
+  const { data: before, error: fetchError } = await supabase
+    .from('questions')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (fetchError) throw new Error(fetchError.message);
+
+  const { error: insertError } = await supabase.from('question_edits').insert({
+    question_id: id,
+    edited_by: userId,
+    before_snapshot: before,
+  });
+  if (insertError) throw new Error(insertError.message);
+
+  const { error: updateError } = await supabase
+    .from('questions')
+    .update(patch)
+    .eq('id', id);
+  if (updateError) throw new Error(updateError.message);
+}
+
+export async function getQuestionEditHistory(questionId: string): Promise<QuestionEdit[]> {
+  const { supabase } = await requireAdmin();
+  const { data: edits, error } = await supabase
+    .from('question_edits')
+    .select('id, question_id, edited_by, before_snapshot, created_at')
+    .eq('question_id', questionId)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  if (!edits || edits.length === 0) return [];
+
+  const editorIds = [...new Set(edits.map(e => e.edited_by).filter((id): id is string => !!id))];
+  const { data: profiles } = editorIds.length > 0
+    ? await supabase.from('profiles').select('id, email').in('id', editorIds)
+    : { data: [] };
+  const emailById = new Map((profiles ?? []).map(p => [p.id, p.email]));
+
+  return edits.map(e => ({
+    id: e.id,
+    question_id: e.question_id,
+    edited_by: e.edited_by,
+    editor_email: e.edited_by ? emailById.get(e.edited_by) ?? null : null,
+    before_snapshot: e.before_snapshot,
+    created_at: e.created_at,
+  }));
+}
+
 export async function resolveQuestionReport(id: string): Promise<void> {
   const { supabase } = await requireAdmin();
   const { error } = await supabase.from('question_reports').update({ resolved: true }).eq('id', id);

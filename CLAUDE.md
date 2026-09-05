@@ -130,6 +130,19 @@ volver a abrir la app igual. Piezas clave:
   - `src/proxy.ts` excluye `/api/` del guard de autenticación -- si no, el cron (sin sesión
     de usuario) sería redirigido a `/login` en vez de llegar a la ruta.
 
+## Auditoría de ediciones de preguntas y frase interpretativa de la gráfica (COMPLETADO)
+
+- **Editar pregunta + historial**: cada reporte de error tiene ahora "Editar" y
+  "Historial" en `/admin/questions`. Al guardar cambios, se inserta un snapshot JSON
+  del estado ANTERIOR en `question_edits` (tabla nueva, RLS solo admin). El historial
+  muestra fecha, admin que editó y el JSON del estado previo — no reconstruye la
+  interfaz de edición vieja, solo el JSON, que es suficiente para saber qué se cambió.
+- **Frase interpretativa**: sobre la gráfica de "Evolución de resultados", una frase
+  calculada compara la media móvil actual con la nota de corte media y con la de
+  hace ~6 exámenes ("supera por X puntos", "vas mejorando", "estás bajando",
+  "estable"). Verde si por encima de la nota de corte, amarillo si por debajo.
+  Reutiliza `movingAvg` y `avgPassMark` ya calculados, sin llamadas nuevas.
+
 ## Posiblemente pendiente
 
 - Penalización por fallo configurable, cuenta atrás con tiempo límite real de examen, cuenta

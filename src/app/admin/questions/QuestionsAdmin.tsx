@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { importQuestions, deleteSource, exportBankText, resolveQuestionReport, type SourceBreakdown, type QuestionReport } from '../actions';
+import { importQuestions, deleteSource, exportBankText, resolveQuestionReport, getQuestion, updateQuestion, getQuestionEditHistory, type SourceBreakdown, type QuestionReport, type QuestionEditableFields, type QuestionEdit } from '../actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { IconUpload } from '@/components/Icons';
 
 function formatDate(iso: string) {
@@ -25,6 +26,47 @@ export default function QuestionsAdmin({
   const [breakdown, setBreakdown] = useState(initialBreakdown);
   const [reports, setReports] = useState(initialReports);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
+
+  const [editing, setEditing] = useState<{ id: string; fields: QuestionEditableFields } | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+
+  const [history, setHistory] = useState<{ questionId: string; edits: QuestionEdit[] } | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  async function handleOpenEdit(questionId: string) {
+    try {
+      const fields = await getQuestion(questionId);
+      setEditing({ id: questionId, fields });
+    } catch (err) {
+      setMessage(`❌ Error: ${err instanceof Error ? err.message : 'desconocido'}`);
+    }
+  }
+
+  async function handleSaveEdit() {
+    if (!editing) return;
+    setEditSaving(true);
+    try {
+      await updateQuestion(editing.id, editing.fields);
+      setEditing(null);
+      setMessage('Pregunta actualizada. Se ha guardado el estado anterior en el historial.');
+    } catch (err) {
+      setMessage(`❌ Error: ${err instanceof Error ? err.message : 'desconocido'}`);
+    }
+    setEditSaving(false);
+  }
+
+  async function handleOpenHistory(questionId: string) {
+    setHistoryLoading(true);
+    setHistory({ questionId, edits: [] });
+    try {
+      const edits = await getQuestionEditHistory(questionId);
+      setHistory({ questionId, edits });
+    } catch (err) {
+      setMessage(`❌ Error: ${err instanceof Error ? err.message : 'desconocido'}`);
+      setHistory(null);
+    }
+    setHistoryLoading(false);
+  }
   const [text, setText] = useState('');
   const [source, setSource] = useState('');
   const [mode, setMode] = useState<'append' | 'replace_source'>('append');
@@ -125,19 +167,27 @@ export default function QuestionsAdmin({
               <div key={r.id} className="rounded-2xl border border-border p-3.5">
                 <p className="mb-1.5 text-[13.5px] font-semibold leading-snug">{r.question_text}</p>
                 <p className="mb-2 text-[13px] leading-relaxed text-destructive">{r.reason}</p>
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-[11.5px] text-muted-foreground">
                     {r.reporter_email ?? 'usuario desconocido'} · {formatDate(r.created_at)}
                   </span>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    disabled={resolvingId === r.id}
-                    onClick={() => handleResolveReport(r.id)}
-                  >
-                    {resolvingId === r.id ? 'Marcando…' : 'Marcar resuelto'}
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => handleOpenHistory(r.question_id)}>
+                      Historial
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => handleOpenEdit(r.question_id)}>
+                      Editar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={resolvingId === r.id}
+                      onClick={() => handleResolveReport(r.id)}
+                    >
+                      {resolvingId === r.id ? 'Marcando…' : 'Marcar resuelto'}
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -258,6 +308,91 @@ export default function QuestionsAdmin({
           {message && <p className="mt-3 text-[13.5px] text-muted-foreground"><strong>{message}</strong></p>}
         </CardContent>
       </Card>
+
+      <Dialog open={!!editing} onOpenChange={(open) => { if (!open) setEditing(null); }}>
+        <DialogContent className="max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Editar pregunta</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <div className="flex flex-col gap-3 max-h-[70vh] overflow-y-auto">
+              <div>
+                <Label>Enunciado</Label>
+                <Textarea rows={3} value={editing.fields.question} onChange={e => setEditing({ ...editing, fields: { ...editing.fields, question: e.target.value } })} />
+              </div>
+              {(['a','b','c','d'] as const).map(letter => (
+                <div key={letter}>
+                  <Label>Opción {letter.toUpperCase()}</Label>
+                  <Input
+                    value={editing.fields[`option_${letter}` as const]}
+                    onChange={e => setEditing({ ...editing, fields: { ...editing.fields, [`option_${letter}`]: e.target.value } })}
+                  />
+                </div>
+              ))}
+              <div>
+                <Label>Correcta</Label>
+                <Select value={editing.fields.correct} onValueChange={v => setEditing({ ...editing, fields: { ...editing.fields, correct: v } })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['A','B','C','D'].map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Explicación</Label>
+                <Textarea rows={3} value={editing.fields.explanation} onChange={e => setEditing({ ...editing, fields: { ...editing.fields, explanation: e.target.value } })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Fuente</Label>
+                  <Input value={editing.fields.source} onChange={e => setEditing({ ...editing, fields: { ...editing.fields, source: e.target.value } })} />
+                </div>
+                <div>
+                  <Label>Tema</Label>
+                  <Input value={editing.fields.topic} onChange={e => setEditing({ ...editing, fields: { ...editing.fields, topic: e.target.value } })} />
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="ghost" size="auto" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button type="button" size="auto" disabled={editSaving} onClick={handleSaveEdit}>
+              {editSaving ? 'Guardando…' : 'Guardar cambios'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!history} onOpenChange={(open) => { if (!open) setHistory(null); }}>
+        <DialogContent className="max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Historial de ediciones</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto">
+            {historyLoading ? (
+              <p className="text-[13.5px] text-muted-foreground">Cargando…</p>
+            ) : history && history.edits.length === 0 ? (
+              <p className="text-[13.5px] text-muted-foreground">Esta pregunta no se ha editado nunca.</p>
+            ) : history ? (
+              <div className="flex flex-col gap-3">
+                {history.edits.map(e => (
+                  <div key={e.id} className="rounded-2xl border border-border p-3">
+                    <p className="mb-1.5 text-[11.5px] text-muted-foreground">
+                      {formatDate(e.created_at)} · editado por {e.editor_email ?? 'admin desconocido'}
+                    </p>
+                    <pre className="max-h-[220px] overflow-auto whitespace-pre-wrap break-words rounded-lg bg-muted/40 p-2 text-[11.5px] leading-relaxed">
+                      {JSON.stringify(e.before_snapshot, null, 2)}
+                    </pre>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" size="auto" onClick={() => setHistory(null)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1217,8 +1217,39 @@ function TrendChart({ history }: { history: ExamAttempt[] }) {
   const firstDate = new Date(chrono[0].created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
   const lastDate = new Date(chrono[n - 1].created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
 
+  // Frase interpretativa: compara la media móvil actual con la nota de corte media
+  // y con la de hace unos exámenes, para dar contexto en vez de solo dibujar la línea.
+  const insight = (() => {
+    const currentAvg = Math.round(movingAvg[movingAvg.length - 1]);
+    const diff = currentAvg - avgPassMark;
+    const passing = diff >= 0;
+    const cushion = Math.abs(diff);
+
+    let trendText = '';
+    if (n >= 6) {
+      const earlierAvg = Math.round(movingAvg[Math.max(0, movingAvg.length - 6)]);
+      const delta = currentAvg - earlierAvg;
+      if (delta >= 3) trendText = ` Vas mejorando (+${delta} puntos frente a hace unos exámenes).`;
+      else if (delta <= -3) trendText = ` Estás bajando (${delta} puntos frente a hace unos exámenes).`;
+      else trendText = ' Vas estable en las últimas semanas.';
+    }
+
+    const cushionText = passing
+      ? `Tu media de los últimos 5 exámenes (${currentAvg}%) supera la nota de corte media (${avgPassMark}%) por ${cushion} puntos.`
+      : `Tu media de los últimos 5 exámenes (${currentAvg}%) está ${cushion} puntos por debajo de la nota de corte media (${avgPassMark}%).`;
+
+    return cushionText + trendText;
+  })();
+
   return (
     <>
+      <div className={`mb-3 rounded-2xl border p-3 text-[13px] leading-relaxed ${
+        Math.round(movingAvg[movingAvg.length - 1]) >= avgPassMark
+          ? 'border-success/50 bg-success/10 text-success'
+          : 'border-warning/60 bg-warning/10 text-[#8a5a00]'
+      }`}>
+        <span className="text-foreground">{insight}</span>
+      </div>
       <p className="mb-1.5 text-[13.5px] text-muted-foreground"><strong>Evolución de resultados:</strong></p>
       <svg className="trend-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Evolución de resultados de los exámenes">
         {[0, 25, 50, 75, 100].map(v => (
