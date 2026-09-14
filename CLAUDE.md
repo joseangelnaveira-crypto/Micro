@@ -92,9 +92,11 @@ volver a abrir la app igual. Piezas clave:
   otro origin (Supabase). Subir a mano `STATIC_CACHE`/`DOC_CACHE` en `public/sw.js` cuando
   haga falta invalidar una versión antigua.
 - `public/manifest.json` con `start_url: "/dashboard"` (evita el round trip extra de `/`).
-- **Iconos de `public/icons/*.png` son un placeholder** (cuadrado sólido del color de marca
-  `#241E3D`, generado con `scripts/generate-pwa-icons.js` usando solo `zlib` de Node, sin
-  añadir sharp/canvas) — sustituir por arte real cuando haya diseño definitivo.
+- Iconos de `public/icons/*.png` generados con `scripts/generate-pwa-icons.js` (placa de
+  Petri con colonias en la paleta de la app, sobre fondo del color de marca `#241E3D`).
+  Se dibujan píxel a píxel con supersampling 3× para bordes suaves, escribiendo el PNG
+  directamente con `zlib` — sin dependencias de imagen (sharp/canvas). Reejecutar el
+  script cuando se toque el diseño; los tres PNG se regeneran a la vez.
 - `src/lib/offline/db.ts` (IndexedDB vía el paquete `idb`): cachea `questions`,
   `question_stats` del usuario, una cola `pending_attempts` y un `kv` con `cachedUserId` para
   no mezclar datos entre cuentas en un dispositivo compartido.
