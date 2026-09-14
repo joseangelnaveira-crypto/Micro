@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Icono de la PWA: placa de Petri con colonias sobre el fondo de marca (#241E3D)
+       y una "M" grande en cursiva serif -- coherente con la tipografía del título de
+       la app en la cabecera. Este SVG es la fuente de verdad del diseño; los tres
+       PNG bajo public/icons/ se generan a partir de él. -->
+  <rect width="512" height="512" fill="#241E3D"/>
+  <circle cx="256" cy="256" r="202" fill="#F0DEBE"/>
+  <circle cx="256" cy="256" r="194" fill="#FFF6E7"/>
+  <circle cx="132" cy="175" r="20" fill="#1B7A50"/>
+  <circle cx="382" cy="160" r="14" fill="#6D45D3"/>
+  <circle cx="118" cy="345" r="18" fill="#C13A2C"/>
+  <circle cx="395" cy="355" r="24" fill="#1B7A50"/>
+  <circle cx="410" cy="270" r="10" fill="#F4A340"/>
+  <text x="256" y="264"
+        text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-weight="700"
+        font-size="290"
+        fill="#241E3D">M</text>
+</svg>
