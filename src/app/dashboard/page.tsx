@@ -8,11 +8,25 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: profile } = await supabase
+  // exam_date es opcional (nueva columna, ver migración 00000000000009). Si aún no
+  // se ha aplicado la migración, Supabase devolverá error de columna desconocida;
+  // en ese caso caemos silenciosamente sin fecha de examen.
+  let profile: { display_name: string | null; email: string | null; role: string | null; exam_date?: string | null } | null = null;
+  const withExamDate = await supabase
     .from('profiles')
-    .select('display_name, email, role')
+    .select('display_name, email, role, exam_date')
     .eq('id', user.id)
     .single();
+  if (withExamDate.error && withExamDate.error.message.includes('exam_date')) {
+    const fallback = await supabase
+      .from('profiles')
+      .select('display_name, email, role')
+      .eq('id', user.id)
+      .single();
+    profile = fallback.data;
+  } else {
+    profile = withExamDate.data;
+  }
 
   const meta = await getBankMeta();
 
@@ -22,6 +36,7 @@ export default async function DashboardPage() {
       isAdmin={profile?.role === 'admin'}
       initialMeta={meta}
       userId={user.id}
+      initialExamDate={profile?.exam_date ?? null}
     />
   );
 }

@@ -419,6 +419,18 @@ export async function searchQuestions(params: {
   return (data ?? []) as Question[];
 }
 
+export async function setExamDate(date: string | null): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('No autenticado');
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ exam_date: date })
+    .eq('id', user.id);
+  if (error) throw new Error(error.message);
+}
+
 export async function reportQuestionError(questionId: string, reason: string): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

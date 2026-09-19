@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Question, ExamAttempt, BankMeta, FinishExamPayload } from '@/lib/exam-types';
-import { startExam, startReviewExam, startSmartReview, finishExam, getHistory, getStudyStats, searchQuestions, getCycleProgress, deleteExamAttempt, reportQuestionError, type StudyStats } from './actions';
+import { startExam, startReviewExam, startSmartReview, finishExam, getHistory, getStudyStats, searchQuestions, getCycleProgress, deleteExamAttempt, reportQuestionError, setExamDate as setExamDateAction, type StudyStats } from './actions';
 import {
   offlineStartExam, offlineStartReviewExam, offlineStartSmartReview, offlineSearchQuestions,
 } from '@/lib/offline/exam-engine';
@@ -47,6 +47,7 @@ type SavedProgress = {
   clientUuid: string;
   affectsCycle: boolean;
   savedAt: string;
+  timeLimitMinutes?: number;
 };
 
 type Modal = {
@@ -101,12 +102,13 @@ function CompositionTags({ composition, className }: { composition: [string, num
 }
 
 export default function DashboardApp({
-  displayName, isAdmin, initialMeta, userId,
+  displayName, isAdmin, initialMeta, userId, initialExamDate,
 }: {
   displayName: string;
   isAdmin: boolean;
   initialMeta: BankMeta;
   userId: string;
+  initialExamDate: string | null;
 }) {
   const [screen, setScreen] = useState<Screen>('home');
   const [meta] = useState<BankMeta>(initialMeta);
@@ -149,6 +151,15 @@ export default function DashboardApp({
   const [syncing, setSyncing] = useState(false);
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [remindersBusy, setRemindersBusy] = useState(false);
+
+  const [examDate, setExamDate] = useState<string | null>(initialExamDate);
+  const [editingExamDate, setEditingExamDate] = useState(false);
+  const [examDateDraft, setExamDateDraft] = useState(initialExamDate ?? '');
+  const [savingExamDate, setSavingExamDate] = useState(false);
+
+  // Modo simulacro: cronómetro real que termina el examen automáticamente al llegar a 0.
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState(0); // 0 = sin límite
+  const timeLimitRef = useRef<number>(0);
 
   const [modal, setModal] = useState<Modal | null>(null);
   function showConfirm(message: string, onConfirm: () => void, opts?: { confirmLabel?: string; danger?: boolean }) {
@@ -255,6 +266,27 @@ export default function DashboardApp({
     });
   }
 
+  async function saveExamDate() {
+    setSavingExamDate(true);
+    try {
+      const value = examDateDraft.trim() || null;
+      await setExamDateAction(value);
+      setExamDate(value);
+      setEditingExamDate(false);
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'No se ha podido guardar la fecha.');
+    }
+    setSavingExamDate(false);
+  }
+
+  function daysUntilExam(): number | null {
+    if (!examDate) return null;
+    const target = new Date(examDate + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Math.round((target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+  }
+
   async function toggleReminders() {
     setRemindersBusy(true);
     try {
@@ -290,7 +322,14 @@ export default function DashboardApp({
   function startTimer() {
     segmentStartRef.current = Date.now();
     if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(forceTick, 1000);
+    timerRef.current = setInterval(() => {
+      forceTick();
+      if (timeLimitRef.current > 0 && currentElapsed() >= timeLimitRef.current * 60 * 1000) {
+        // Se acabó el tiempo -- terminamos el examen tal como esté.
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+        finish();
+      }
+    }, 1000);
   }
   function currentElapsed() {
     const running = segmentStartRef.current ? Date.now() - segmentStartRef.current : 0;
@@ -311,6 +350,7 @@ export default function DashboardApp({
       sourceFilter, topicFilter, clientUuid: clientUuidRef.current,
       affectsCycle: affectsCycleRef.current,
       savedAt: new Date().toISOString(),
+      timeLimitMinutes: timeLimitRef.current,
       ...overrides,
     };
     try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(payload)); } catch { /* noop */ }
@@ -324,6 +364,7 @@ export default function DashboardApp({
     if (questions.length === 0) return;
     clientUuidRef.current = crypto.randomUUID();
     affectsCycleRef.current = affectsCycle;
+    timeLimitRef.current = timeLimitMinutes; // se congela para este examen
     setExamQuestions(questions);
     setCurrentIndex(0);
     setSelected(null);
@@ -397,6 +438,7 @@ export default function DashboardApp({
     if (!savedProgress) return;
     clientUuidRef.current = savedProgress.clientUuid;
     affectsCycleRef.current = savedProgress.affectsCycle ?? true;
+    timeLimitRef.current = savedProgress.timeLimitMinutes ?? 0;
     setExamQuestions(savedProgress.examQuestions);
     setCurrentIndex(savedProgress.currentIndex);
     setSelected(savedProgress.selected);
@@ -626,7 +668,17 @@ export default function DashboardApp({
           <CardContent className="pt-6">
             <div className="mb-1.5 flex justify-between font-mono text-xs font-semibold text-muted-foreground">
               <span>PREGUNTA {currentIndex + 1} / {total}</span>
-              <span>{formatDuration(currentElapsed())}</span>
+              {timeLimitRef.current > 0 ? (() => {
+                const remainingMs = Math.max(0, timeLimitRef.current * 60 * 1000 - currentElapsed());
+                const soon = remainingMs <= 60 * 1000;
+                return (
+                  <span className={cn(soon && 'text-destructive')}>
+                    ⏱ {formatDuration(remainingMs)}
+                  </span>
+                );
+              })() : (
+                <span>{formatDuration(currentElapsed())}</span>
+              )}
               <span>ACIERTOS {scoreSoFar}</span>
             </div>
             <div className="mb-4 h-[7px] overflow-hidden rounded-full bg-muted">
@@ -699,8 +751,9 @@ export default function DashboardApp({
                     disabled={checked}
                     onClick={() => selectOption(letter)}
                     className={cn(
-                      'flex w-full items-center gap-3 rounded-2xl border border-input bg-card px-4 py-3.5 text-left text-[15px] font-medium leading-snug text-foreground transition-all',
+                      'flex w-full items-center gap-3 rounded-2xl border border-input bg-card px-4 py-3.5 text-left text-[15px] font-medium leading-snug text-foreground transition-all outline-none',
                       'hover:border-secondary hover:-translate-y-px hover:shadow-md disabled:cursor-default disabled:hover:translate-y-0 disabled:hover:shadow-none',
+                      'focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:border-secondary',
                       stateClass
                     )}
                   >
@@ -855,7 +908,7 @@ export default function DashboardApp({
   return (
     <div className={container}>
       {modalNode}
-      <div className="sticky top-0 z-50 -mx-3.5 mb-5 flex items-center justify-between border-b border-border bg-background/90 px-3.5 py-3.5 backdrop-blur-md md:-mx-5 md:px-5">
+      <div className="sticky top-0 z-50 -mx-3.5 mb-5 flex items-center justify-between border-b border-border/50 bg-background/80 px-3.5 py-3 backdrop-blur-md md:-mx-5 md:px-5">
         <div className="flex items-center gap-2">
           <span className="text-secondary"><IconPetri /></span>
           <h1 className="font-display text-xl italic tracking-normal">Academia de Microbiología</h1>
@@ -925,6 +978,75 @@ export default function DashboardApp({
         </Card>
       )}
 
+      <Card className="mb-4">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+          {editingExamDate ? (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <Label htmlFor="exam-date" className="text-[13px] text-muted-foreground">Fecha de tu convocatoria</Label>
+                <Input
+                  id="exam-date"
+                  type="date"
+                  value={examDateDraft}
+                  onChange={e => setExamDateDraft(e.target.value)}
+                  className="w-auto"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                {examDate && (
+                  <Button type="button" variant="ghost" size="sm" disabled={savingExamDate}
+                    onClick={() => { setExamDateDraft(''); saveExamDate(); }}>
+                    Quitar
+                  </Button>
+                )}
+                <Button type="button" variant="ghost" size="sm" onClick={() => { setEditingExamDate(false); setExamDateDraft(examDate ?? ''); }}>
+                  Cancelar
+                </Button>
+                <Button type="button" size="sm" disabled={savingExamDate} onClick={saveExamDate}>
+                  {savingExamDate ? 'Guardando…' : 'Guardar'}
+                </Button>
+              </div>
+            </>
+          ) : examDate ? (
+            (() => {
+              const days = daysUntilExam();
+              if (days === null) return null;
+              const label =
+                days < 0 ? `La convocatoria fue hace ${-days} días` :
+                days === 0 ? 'Hoy es tu convocatoria' :
+                days === 1 ? 'Mañana es tu convocatoria' :
+                `Faltan ${days} días para tu convocatoria`;
+              const tone =
+                days < 0 ? 'text-muted-foreground' :
+                days <= 14 ? 'text-destructive' :
+                days <= 60 ? 'text-warning' : 'text-secondary';
+              return (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className={cn('font-display text-[19px] italic', tone)}>{label}</span>
+                    <span className="text-[12.5px] text-muted-foreground">
+                      · {new Date(examDate + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setEditingExamDate(true)}>
+                    Cambiar fecha
+                  </Button>
+                </>
+              );
+            })()
+          ) : (
+            <>
+              <p className="text-[13.5px] text-muted-foreground">
+                ¿Cuándo es tu convocatoria? Añádela y verás cuánto queda cada vez que entres.
+              </p>
+              <Button type="button" variant="outline" size="sm" onClick={() => setEditingExamDate(true)}>
+                Añadir fecha
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="mb-4 grid items-start gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -954,7 +1076,7 @@ export default function DashboardApp({
           </CardContent>
         </Card>
 
-        <Card className="border-t-[3px] border-t-secondary bg-gradient-to-br from-card via-card to-secondary/5">
+        <Card className="border-secondary/40 bg-gradient-to-br from-card via-card to-secondary/[0.04]">
           <CardHeader>
             <div className="flex items-center gap-2.5">
               <span className="flex size-8 flex-none items-center justify-center rounded-[10px] bg-secondary text-secondary-foreground">
@@ -1027,6 +1149,17 @@ export default function DashboardApp({
               max={100}
               value={passMark}
               onChange={e => setPassMark(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+              className="mb-3.5"
+            />
+            <div className="mb-1.5">
+              <Label>Tiempo límite (min · 0 = sin límite)</Label>
+            </div>
+            <Input
+              type="number"
+              min={0}
+              max={600}
+              value={timeLimitMinutes}
+              onChange={e => setTimeLimitMinutes(Math.max(0, Math.min(600, parseInt(e.target.value) || 0)))}
               className="mb-3.5"
             />
             <Button

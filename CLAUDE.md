@@ -161,10 +161,22 @@ volver a abrir la app igual. Piezas clave:
   fallaban entre 3.0-4.5). Los fondos con opacidad (`bg-success/10`, etc.) conservan
   el tono visual porque componen sobre blanco.
 
+## Tiempo límite de examen y cuenta atrás de convocatoria (COMPLETADO)
+
+- **Tiempo límite**: campo "Tiempo límite (min)" al generar examen. 0 = sin límite (mismo
+  comportamiento de antes). Si es >0, el `startTimer` termina el examen automáticamente al
+  llegar a 0 llamando a `finish()`. El límite se conserva en `savedProgress.timeLimitMinutes`
+  para que sobreviva a un "salir y continuar". Durante el examen se muestra el tiempo
+  RESTANTE (no el transcurrido) y pasa a rojo en el último minuto.
+- **Fecha de convocatoria**: columna nueva `profiles.exam_date` (nullable). Widget en el
+  dashboard con "Faltan X días", coloreado según urgencia (secundario/amarillo/rojo). El
+  usuario puede añadirla, cambiarla o quitarla. La query en `dashboard/page.tsx` tolera
+  que la columna no exista todavía (fallback silencioso), para no romper la app si la
+  migración no está aplicada en Supabase.
+
 ## Posiblemente pendiente
 
-- Penalización por fallo configurable, cuenta atrás con tiempo límite real de examen, cuenta
-  atrás hacia la fecha de la convocatoria.
+- Penalización por fallo configurable.
 
 ## Cómo se prueba
 
