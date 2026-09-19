@@ -20,7 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Sun, Moon, WifiOff, Trash2, Bell, BellOff, Check, X } from 'lucide-react';
+import { Sun, Moon, WifiOff, Trash2, Bell, BellOff, Check, X, Flag } from 'lucide-react';
 import { hasPushSubscription } from './push-actions';
 import { enableReminders, disableReminders } from '@/lib/push-client';
 
@@ -488,6 +488,37 @@ export default function DashboardApp({
     }
   }
 
+  // Atajos de teclado durante el examen: A/B/C/D o 1/2/3/4 seleccionan; Enter/→/Espacio
+  // pasan a la siguiente cuando ya se ha respondido. No hace nada si el foco está en un
+  // input/textarea/select (por ejemplo un diálogo abierto por encima).
+  useEffect(() => {
+    if (screen !== 'exam') return;
+    function handleKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+      if (target && target.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const letterMap: Record<string, string> = {
+        a: 'A', b: 'B', c: 'C', d: 'D',
+        '1': 'A', '2': 'B', '3': 'C', '4': 'D',
+      };
+      const key = e.key.toLowerCase();
+      if (!checked && letterMap[key]) {
+        e.preventDefault();
+        selectOption(letterMap[key]);
+        return;
+      }
+      if (checked && (e.key === 'Enter' || e.key === 'ArrowRight' || e.key === ' ')) {
+        e.preventDefault();
+        nextQuestion();
+      }
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, checked, currentIndex]);
+
   async function finish() {
     stopTimer();
     setFinishing(true);
@@ -723,7 +754,8 @@ export default function DashboardApp({
                   onClick={() => toggleFlag(q.id)}
                   className={isFlagged ? 'border-warning bg-warning/15 text-[#8a5a00] hover:bg-warning/20' : undefined}
                 >
-                  {isFlagged ? '🚩 Marcada' : '🏳️ Marcar'}
+                  <Flag className={cn('size-3.5', isFlagged && 'fill-current')} />
+                  {isFlagged ? 'Marcada' : 'Marcar'}
                 </Button>
               </div>
             </div>
@@ -809,8 +841,13 @@ export default function DashboardApp({
               </div>
             )}
 
-            <div className="mt-5 flex justify-end gap-2.5">
-              <Button type="button" variant="ghost" size="auto" onClick={requestExit}>Salir</Button>
+            <p className="mt-4 text-center text-[11.5px] text-muted-foreground">
+              Atajos: A/B/C/D o 1-4 para responder · Enter para siguiente
+            </p>
+            <div className="mt-4 flex items-center justify-between gap-2.5">
+              <Button type="button" variant="ghost" size="sm" onClick={requestExit} className="text-muted-foreground">
+                Salir
+              </Button>
               {checked && (
                 <Button type="button" size="auto" disabled={finishing} onClick={nextQuestion}>
                   {finishing ? 'Guardando…' : currentIndex + 1 >= total ? 'Ver resultados' : 'Siguiente pregunta →'}
@@ -856,8 +893,9 @@ export default function DashboardApp({
             <div className="mt-5 flex flex-wrap justify-center gap-2.5">
               <Button type="button" variant="ghost" size="auto" onClick={backHome}>Volver al inicio</Button>
               {flagged.size > 0 && (
-                <Button type="button" variant="secondary" size="auto" onClick={reviewFlagged}>
-                  🚩 Repasar marcadas ({flagged.size})
+                <Button type="button" variant="secondary" size="auto" onClick={reviewFlagged} className="gap-1.5">
+                  <Flag className="size-3.5 fill-current" />
+                  Repasar marcadas ({flagged.size})
                 </Button>
               )}
               {failed.length > 0 && (
@@ -880,7 +918,10 @@ export default function DashboardApp({
                 };
                 return (
                   <div key={r.question.id} className="border-t border-border/60 py-[15px] first:border-t-0 first:pt-0">
-                    <p className="mb-2 text-[15px]">{r.question.question}{flagged.has(r.question.id) ? ' 🚩' : ''}</p>
+                    <p className="mb-2 flex items-start gap-1.5 text-[15px]">
+                      <span>{r.question.question}</span>
+                      {flagged.has(r.question.id) && <Flag className="mt-1 size-3.5 flex-none fill-warning text-warning" />}
+                    </p>
                     <div className="my-[3px] text-[13.5px] text-destructive">
                       Tu respuesta: {r.selected ? `${r.selected}) ${opts[r.selected]}` : '(en blanco)'}
                     </div>
