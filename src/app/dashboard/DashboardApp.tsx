@@ -1291,18 +1291,27 @@ export default function DashboardApp({
               {loadingHistory ? (
                 <p className="text-[13.5px] text-muted-foreground">Cargando…</p>
               ) : history.length === 0 ? (
-                <p className="text-[13.5px] text-muted-foreground">Todavía no has realizado ningún examen.</p>
+                <div className="rounded-2xl border border-dashed border-border p-6 text-center">
+                  <p className="mb-1 text-[14px] font-semibold">Todavía no hay exámenes en tu historial</p>
+                  <p className="text-[13px] text-muted-foreground">
+                    Cuando termines uno aparecerá aquí, con la opción de repetirlo tal cual y de ver cómo evoluciona tu nota.
+                  </p>
+                </div>
               ) : (
                 <div className="flex flex-col gap-2">
                   {history.map(h => {
                     const passed = h.score >= h.pass_mark;
+                    const perQuestionSec = h.total > 0 ? Math.round(h.duration_ms / h.total / 1000) : 0;
                     return (
                       <div
                         key={h.id}
                         className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-input px-3.5 py-[11px] transition-colors hover:shadow-sm"
                       >
                         <div className="flex flex-col gap-[3px]">
-                          <span className="font-mono text-[11.5px] text-muted-foreground">{formatDate(h.created_at)} · {formatDuration(h.duration_ms)}</span>
+                          <span className="font-mono text-[11.5px] text-muted-foreground">
+                            {formatDate(h.created_at)} · {formatDuration(h.duration_ms)}
+                            {perQuestionSec > 0 && <> · ~{perQuestionSec}s/preg.</>}
+                          </span>
                           <span className={cn('text-[13.5px] font-bold', passed ? 'text-success' : 'text-destructive')}>
                             {h.correct}/{h.total} · {h.score}% {passed ? '· Apto' : '· No apto'}
                           </span>

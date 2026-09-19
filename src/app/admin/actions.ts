@@ -22,16 +22,31 @@ export type UserProgressRow = {
   bestScore: number | null;
   lastExamAt: string | null;
   questionsAnswered: number;
+  examDate: string | null;
 };
 
 export async function getAllUsersProgress(): Promise<UserProgressRow[]> {
   const { supabase } = await requireAdmin();
 
-  const { data: profiles } = await supabase
+  // Intento incluir exam_date. Si la columna no existe todavía (migración pendiente),
+  // caigo silenciosamente al select sin ese campo, exactamente igual que dashboard/page.tsx.
+  type Profile = { id: string; email: string; display_name: string | null; created_at: string; exam_date?: string | null };
+  let profiles: Profile[] | null = null;
+  const withExamDate = await supabase
     .from('profiles')
-    .select('id, email, display_name, created_at')
+    .select('id, email, display_name, created_at, exam_date')
     .eq('status', 'approved')
     .order('created_at', { ascending: true });
+  if (withExamDate.error && withExamDate.error.message.includes('exam_date')) {
+    const fallback = await supabase
+      .from('profiles')
+      .select('id, email, display_name, created_at')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: true });
+    profiles = fallback.data as Profile[] | null;
+  } else {
+    profiles = withExamDate.data as Profile[] | null;
+  }
 
   if (!profiles || profiles.length === 0) return [];
 
@@ -82,6 +97,7 @@ export async function getAllUsersProgress(): Promise<UserProgressRow[]> {
       bestScore,
       lastExamAt,
       questionsAnswered: answeredByUser.get(p.id) ?? 0,
+      examDate: p.exam_date ?? null,
     };
   });
 }

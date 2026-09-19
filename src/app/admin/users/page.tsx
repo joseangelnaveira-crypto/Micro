@@ -10,6 +10,19 @@ function formatDate(iso: string | null) {
     ' · ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatExamDate(iso: string | null) {
+  if (!iso) return '—';
+  const target = new Date(iso + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((target.getTime() - today.getTime()) / 86400000);
+  const nice = target.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  if (days < 0) return `${nice} (pasada)`;
+  if (days === 0) return `${nice} (hoy)`;
+  if (days === 1) return `${nice} (mañana)`;
+  return `${nice} (${days}d)`;
+}
+
 export default async function AdminUsersPage() {
   const users = await getAllUsersProgress();
 
@@ -39,6 +52,7 @@ export default async function AdminUsersPage() {
                 <TableHead>Mejor nota</TableHead>
                 <TableHead>Preguntas respondidas</TableHead>
                 <TableHead>Último examen</TableHead>
+                <TableHead>Convocatoria</TableHead>
                 <TableHead>Registrado</TableHead>
               </TableRow>
             </TableHeader>
@@ -54,6 +68,7 @@ export default async function AdminUsersPage() {
                   <TableCell>{u.bestScore !== null ? `${u.bestScore}%` : '—'}</TableCell>
                   <TableCell>{u.questionsAnswered}</TableCell>
                   <TableCell>{formatDate(u.lastExamAt)}</TableCell>
+                  <TableCell>{formatExamDate(u.examDate)}</TableCell>
                   <TableCell>{formatDate(u.created_at)}</TableCell>
                 </TableRow>
               ))}
