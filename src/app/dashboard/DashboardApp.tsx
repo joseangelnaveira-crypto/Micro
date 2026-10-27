@@ -1002,6 +1002,50 @@ export default function DashboardApp({
 
   const smartAvailable = studyStats ? studyStats.totalAnswered > 0 : false;
 
+  // Sugerencia "qué toca hoy": una sola recomendación clara en función del estado.
+  // Priorizamos (en este orden): examen en curso > repaso inteligente si hay fallos >
+  // completar racha > repasar preguntas marcadas > empezar un examen normal.
+  function todaySuggestion(): { title: string; subtitle: string; cta: string; onRun: () => void } | null {
+    if (savedProgress) {
+      return {
+        title: 'Tienes un examen a medias',
+        subtitle: `Vas por la pregunta ${savedProgress.currentIndex + 1} de ${savedProgress.examQuestions.length}. Retómalo donde lo dejaste.`,
+        cta: 'Continuar',
+        onRun: resumeProgress,
+      };
+    }
+    if (streak && !streak.todayDone && streak.current > 0) {
+      return {
+        title: `Mantén tu racha de ${streak.current} ${streak.current === 1 ? 'día' : 'días'}`,
+        subtitle: 'Haz un examen hoy para no perderla. Puede ser corto.',
+        cta: 'Empezar',
+        onRun: handleStartExam,
+      };
+    }
+    if (smartAvailable) {
+      return {
+        title: 'Repaso de lo que más te falla',
+        subtitle: 'Prioriza preguntas con peor ratio de aciertos — rinde más que uno aleatorio.',
+        cta: 'Repasar',
+        onRun: handleSmartReview,
+      };
+    }
+    if (flagged.size > 0) {
+      return {
+        title: `Preguntas marcadas (${flagged.size})`,
+        subtitle: 'Lo que has dejado para repasar más tarde.',
+        cta: 'Repasar marcadas',
+        onRun: reviewFlagged,
+      };
+    }
+    return {
+      title: 'Empieza por un examen de prueba',
+      subtitle: `Hay ${meta.total.toLocaleString('es-ES')} preguntas en el banco. Un examen te sitúa.`,
+      cta: 'Empezar',
+      onRun: handleStartExam,
+    };
+  }
+
   return (
     <div className={container}>
       {modalNode}
@@ -1087,7 +1131,7 @@ export default function DashboardApp({
         </Card>
       )}
 
-      {savedProgress && (
+      {savedProgress ? (
         <Card className="mb-4 border-warning/60 bg-warning/5">
           <CardHeader>
             <CardTitle>Examen en curso</CardTitle>
@@ -1101,7 +1145,26 @@ export default function DashboardApp({
             <Button type="button" variant="ghost" size="auto" onClick={discardProgress}>Descartar</Button>
           </CardContent>
         </Card>
-      )}
+      ) : (() => {
+        const sug = todaySuggestion();
+        if (!sug) return null;
+        return (
+          <Card className="mb-4 relative overflow-hidden border-secondary/30 bg-gradient-to-br from-card via-card to-secondary/[0.04]">
+            <span className="colony-blob" style={{ top: '-30px', right: '-30px', width: '150px', height: '150px', background: 'var(--colony)' }} />
+            <span className="colony-blob" style={{ bottom: '-40px', right: '60px', width: '110px', height: '110px', background: 'var(--amber)' }} />
+            <CardContent className="relative flex flex-wrap items-center justify-between gap-3 pt-6">
+              <div className="min-w-0 flex-1">
+                <p className="font-display mb-0.5 text-[11px] uppercase tracking-[1.5px] text-secondary">Para hoy</p>
+                <p className="font-display text-[20px] italic leading-snug text-foreground">{sug.title}</p>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">{sug.subtitle}</p>
+              </div>
+              <Button type="button" size="auto" onClick={sug.onRun} disabled={starting}>
+                {starting ? 'Un momento…' : sug.cta}
+              </Button>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <Card className="mb-4">
         <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
