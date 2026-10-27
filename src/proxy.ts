@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 // Rutas que cualquiera puede visitar sin haber iniciado sesión.
-const PUBLIC_PATHS = ['/login', '/signup', '/auth/callback'];
+const PUBLIC_PATHS = ['/login', '/signup', '/auth/callback', '/forgot-password', '/reset-password'];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
@@ -53,14 +53,17 @@ export async function proxy(request: NextRequest) {
   const role = profile?.role ?? 'user';
 
   // Usuario ya logueado no debería ver login/signup otra vez.
-  if (isPublic && path !== '/auth/callback') {
+  // Excepciones: /auth/callback debe ejecutarse (hace el exchange), y /reset-password
+  // se usa con una sesión temporal creada por el enlace de recovery -- no redirigir.
+  if (isPublic && path !== '/auth/callback' && path !== '/reset-password') {
     const url = request.nextUrl.clone();
     url.pathname = status === 'approved' ? '/dashboard' : '/pending';
     return NextResponse.redirect(url);
   }
 
-  // Pendiente de aprobación (o rechazado) -> solo puede ver /pending.
-  if (status !== 'approved' && path !== '/pending') {
+  // Pendiente de aprobación (o rechazado) -> solo puede ver /pending y /reset-password
+  // (recovery funciona incluso antes de ser aprobado -- es gestión de la propia cuenta).
+  if (status !== 'approved' && path !== '/pending' && path !== '/reset-password') {
     const url = request.nextUrl.clone();
     url.pathname = '/pending';
     return NextResponse.redirect(url);
