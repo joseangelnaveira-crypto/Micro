@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Question, ExamAttempt, BankMeta, FinishExamPayload } from '@/lib/exam-types';
-import { startExam, startReviewExam, startSmartReview, finishExam, getHistory, getStudyStats, searchQuestions, getCycleProgress, deleteExamAttempt, reportQuestionError, setExamDate as setExamDateAction, type StudyStats } from './actions';
+import { startExam, startReviewExam, startSmartReview, finishExam, getHistory, getStudyStats, searchQuestions, getCycleProgress, deleteExamAttempt, reportQuestionError, setExamDate as setExamDateAction, getStreak, type StudyStats, type StreakInfo } from './actions';
 import {
   offlineStartExam, offlineStartReviewExam, offlineStartSmartReview, offlineSearchQuestions,
 } from '@/lib/offline/exam-engine';
@@ -20,7 +20,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Sun, Moon, WifiOff, Trash2, Bell, BellOff, Check, X, Flag } from 'lucide-react';
+import { Sun, Moon, WifiOff, Trash2, Bell, BellOff, Check, X, Flag, Search, Flame, FlaskConical, History as HistoryIcon, BarChart3, Zap } from 'lucide-react';
+import CommandPalette, { type PaletteAction } from '@/components/CommandPalette';
+import Confetti from '@/components/Confetti';
 import { hasPushSubscription } from './push-actions';
 import { enableReminders, disableReminders } from '@/lib/push-client';
 
@@ -152,6 +154,10 @@ export default function DashboardApp({
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [remindersBusy, setRemindersBusy] = useState(false);
 
+  const [streak, setStreak] = useState<StreakInfo | null>(null);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
+
   const [examDate, setExamDate] = useState<string | null>(initialExamDate);
   const [editingExamDate, setEditingExamDate] = useState(false);
   const [examDateDraft, setExamDateDraft] = useState(initialExamDate ?? '');
@@ -231,6 +237,15 @@ export default function DashboardApp({
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Ctrl/Cmd+K abre el buscador global
+    function handleCmdK(e: KeyboardEvent) {
+      if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setCommandOpen(prev => !prev);
+      }
+    }
+    window.addEventListener('keydown', handleCmdK);
+
     try {
       const raw = localStorage.getItem(PROGRESS_KEY);
       if (raw) setSavedProgress(JSON.parse(raw));
@@ -246,6 +261,7 @@ export default function DashboardApp({
       if (timerRef.current) clearInterval(timerRef.current);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('keydown', handleCmdK);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -287,6 +303,17 @@ export default function DashboardApp({
     return Math.round((target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
   }
 
+  function buildPaletteActions(): PaletteAction[] {
+    return [
+      { id: 'start-exam', label: 'Empezar examen nuevo', icon: <FlaskConical className="size-4" />, hint: '', onRun: () => handleStartExam() },
+      { id: 'smart', label: 'Repaso inteligente', icon: <Zap className="size-4" />, onRun: () => handleSmartReview() },
+      { id: 'history', label: 'Ver historial de exámenes', icon: <HistoryIcon className="size-4" />, onRun: () => { const el = document.getElementById('section-history'); el?.scrollIntoView({ behavior: 'smooth' }); (el?.querySelector('details') as HTMLDetailsElement | null)?.setAttribute('open', ''); } },
+      { id: 'stats', label: 'Ver estadísticas', icon: <BarChart3 className="size-4" />, onRun: () => { const el = document.getElementById('section-stats'); el?.scrollIntoView({ behavior: 'smooth' }); (el?.querySelector('details') as HTMLDetailsElement | null)?.setAttribute('open', ''); } },
+      { id: 'theme', label: darkMode ? 'Modo claro' : 'Modo oscuro', icon: darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />, onRun: () => toggleDarkMode() },
+      { id: 'reminders', label: remindersEnabled ? 'Desactivar recordatorios' : 'Activar recordatorios', icon: remindersEnabled ? <Bell className="size-4" /> : <BellOff className="size-4" />, onRun: () => toggleReminders() },
+    ];
+  }
+
   async function toggleReminders() {
     setRemindersBusy(true);
     try {
@@ -309,6 +336,7 @@ export default function DashboardApp({
     const h = await getHistory();
     setHistory(h);
     setLoadingHistory(false);
+    getStreak().then(setStreak).catch(() => { /* noop */ });
   }
 
   async function refreshStats() {
@@ -571,6 +599,11 @@ export default function DashboardApp({
     setLastAttempt(attempt);
     setFinishing(false);
     setScreen('results');
+    // Celebración: solo si aprobado y hito reconocible (perfecto o supera por 20+ puntos).
+    const passed = attempt.score >= attempt.pass_mark;
+    const perfect = attempt.score === 100;
+    const strong = passed && attempt.score - attempt.pass_mark >= 20;
+    if (perfect || strong) setConfettiTrigger(c => c + 1);
     if (isOnline) {
       refreshHistory();
       refreshStats();
@@ -865,8 +898,23 @@ export default function DashboardApp({
     const failed = results.filter(r => !r.isCorrect);
     const composition = examComposition(examQuestions);
 
+    // Mensaje personalizado basado en el histórico (hitos reales, no genéricos).
+    const prevScores = history.map(h => h.score);
+    const prevBest = prevScores.length ? Math.max(...prevScores) : null;
+    const prevAvg = prevScores.length ? prevScores.reduce((s, v) => s + v, 0) / prevScores.length : null;
+    let celebration: string | null = null;
+    if (passed) {
+      if (lastAttempt.score === 100) celebration = '¡Examen perfecto! Enhorabuena.';
+      else if (prevBest !== null && lastAttempt.score > prevBest) celebration = `Nueva mejor nota — superas tu récord anterior (${prevBest}%).`;
+      else if (prevAvg !== null && lastAttempt.score - prevAvg >= 15) celebration = 'Muy por encima de tu media. Vas afianzando.';
+      else celebration = passed ? 'Aprobado. Buen ritmo.' : null;
+    } else {
+      celebration = 'Aún no es tu día — anota las falladas y vuelve pronto.';
+    }
+
     return (
       <div className={container}>
+        <Confetti trigger={confettiTrigger} />
         {modalNode}
         <Card className="mb-4 text-center">
           <CardContent className="pt-6">
@@ -889,7 +937,15 @@ export default function DashboardApp({
               <StatBlock value={formatDuration(lastAttempt.duration_ms)} label="tiempo" />
             </div>
             {composition.length > 1 && <CompositionTags composition={composition} className="mt-3.5 justify-center" />}
-            <p className="mt-4 text-[13.5px] text-muted-foreground">Nota de corte: {lastAttempt.pass_mark}%</p>
+            {celebration && (
+              <p className={cn(
+                'font-display mt-4 text-[18px] italic leading-snug',
+                passed ? 'text-success' : 'text-muted-foreground'
+              )}>
+                {celebration}
+              </p>
+            )}
+            <p className="mt-2 text-[13.5px] text-muted-foreground">Nota de corte: {lastAttempt.pass_mark}%</p>
             <div className="mt-5 flex flex-wrap justify-center gap-2.5">
               <Button type="button" variant="ghost" size="auto" onClick={backHome}>Volver al inicio</Button>
               {flagged.size > 0 && (
@@ -949,12 +1005,40 @@ export default function DashboardApp({
   return (
     <div className={container}>
       {modalNode}
+      <Confetti trigger={confettiTrigger} />
+      <CommandPalette
+        open={commandOpen}
+        onOpenChange={setCommandOpen}
+        actions={buildPaletteActions()}
+        onSearch={async (q) => searchQuestions({ query: q, source: null, topic: null })}
+      />
       <div className="sticky top-0 z-50 -mx-3.5 mb-5 flex items-center justify-between border-b border-border/50 bg-background/80 px-3.5 py-3 backdrop-blur-md md:-mx-5 md:px-5">
         <div className="flex items-center gap-2">
           <span className="text-secondary"><IconPetri /></span>
           <h1 className="font-display text-xl italic tracking-normal">Academia de Microbiología</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 md:gap-2">
+          {streak && streak.current > 0 && (
+            <button
+              type="button"
+              onClick={() => { const el = document.getElementById('section-stats'); el?.scrollIntoView({ behavior: 'smooth' }); (el?.querySelector('details') as HTMLDetailsElement | null)?.setAttribute('open', ''); }}
+              className="hidden items-center gap-1 rounded-full border border-warning/50 bg-warning/10 px-2.5 py-1 text-[12px] font-bold text-[#8a5a00] transition-colors hover:bg-warning/20 sm:flex"
+              title={streak.todayDone ? `${streak.current} días seguidos estudiando — ¡sigue así!` : `${streak.current} días seguidos. Hoy aún no has estudiado.`}
+            >
+              <Flame className={cn('size-3.5', streak.todayDone && 'fill-current')} />
+              {streak.current}
+            </button>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => setCommandOpen(true)}
+            title="Buscar (Ctrl+K)"
+            aria-label="Buscar"
+          >
+            <Search className="size-4" />
+          </Button>
           <InstallPWAButton />
           <Button
             type="button"
@@ -1219,7 +1303,7 @@ export default function DashboardApp({
       </div>
 
       {studyStats && studyStats.totalAnswered > 0 && (
-        <Card className="mb-4">
+        <Card id="section-stats" className="mb-4">
           <CardContent className="pt-6">
             <details className="group">
               <summary className="font-display mb-0 flex cursor-pointer list-none items-center gap-2 text-[19px] italic marker:content-none group-open:mb-3.5">
@@ -1237,9 +1321,23 @@ export default function DashboardApp({
                       <StatBlock value={`${avgScore ?? '–'}%`} label="nota media" />
                       <StatBlock value={`${bestScore ?? '–'}%`} label="mejor nota" />
                       <StatBlock value={`${studyStats.overallAccuracy ?? '–'}%`} label="acierto global" />
+                      {streak && (
+                        <StatBlock
+                          value={
+                            <span className="flex items-center gap-1.5">
+                              <Flame className={cn('size-4', streak.todayDone ? 'fill-warning text-warning' : 'text-warning/60')} />
+                              {streak.current}
+                            </span>
+                          }
+                          label={streak.current === 1 ? 'día de racha' : 'días de racha'}
+                        />
+                      )}
                     </div>
                     <p className="mb-5 text-[13.5px] leading-relaxed text-muted-foreground">
                       {passCount} de {totalExams} exámenes por encima de la nota de corte · {studyStats.totalAnswered} preguntas respondidas en total.
+                      {streak && streak.longest > streak.current && streak.longest > 2 && (
+                        <> · Tu mejor racha fueron {streak.longest} días.</>
+                      )}
                     </p>
                   </>
                 );
@@ -1323,7 +1421,7 @@ export default function DashboardApp({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card id="section-history">
           <CardContent className="pt-6">
             <details className="group">
               <summary className="font-display mb-0 flex cursor-pointer list-none items-center gap-2 text-[19px] italic marker:content-none group-open:mb-3.5">

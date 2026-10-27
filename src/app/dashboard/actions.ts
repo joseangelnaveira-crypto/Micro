@@ -419,6 +419,90 @@ export async function searchQuestions(params: {
   return (data ?? []) as Question[];
 }
 
+export type StreakInfo = {
+  current: number;      // días consecutivos actuales
+  longest: number;      // mejor racha histórica
+  todayDone: boolean;   // ¿hoy ya hay un examen completado?
+  frozenAvailable: boolean; // ¿puede "perdonar" un día ya? (true si current >= 3 y no se gastó en 14d)
+};
+
+/**
+ * Calcula la racha de días consecutivos con al menos un exam_attempt. Permite 1 día de
+ * "perdón" (streak freeze) una vez cada 14 días si la racha es >=3, inspirado en Duolingo.
+ * Pensado para ser llamado desde el dashboard; no toca la base de datos.
+ */
+export async function getStreak(): Promise<StreakInfo> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('No autenticado');
+
+  const { data } = await supabase
+    .from('exam_attempts')
+    .select('created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (!data || data.length === 0) {
+    return { current: 0, longest: 0, todayDone: false, frozenAvailable: false };
+  }
+
+  // Convertimos cada timestamp a su "día local" en formato YYYY-MM-DD, deduplicamos.
+  const days = new Set<string>();
+  for (const row of data) {
+    const d = new Date(row.created_at);
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    days.add(key);
+  }
+  const sortedDesc = [...days].sort().reverse();
+
+  const todayKey = (() => {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  })();
+  const yesterdayKey = (() => {
+    const d = new Date(); d.setDate(d.getDate() - 1);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  })();
+  const todayDone = days.has(todayKey);
+
+  // Racha actual: ancla hoy si está, si no, ayer (racha mantenida pero sin estudiar hoy).
+  let anchor = todayDone ? todayKey : (days.has(yesterdayKey) ? yesterdayKey : null);
+  let current = 0;
+  if (anchor) {
+    const anchorDate = new Date(anchor);
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(anchorDate); d.setDate(anchorDate.getDate() - i);
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      if (days.has(key)) current++;
+      else break;
+    }
+  }
+
+  // Mejor racha histórica: recorremos el conjunto de días en orden descendente agrupando
+  // en secuencias consecutivas.
+  let longest = 0;
+  let prev: string | null = null;
+  let run = 0;
+  const sortedAsc = [...days].sort();
+  for (const day of sortedAsc) {
+    if (prev) {
+      const pd = new Date(prev); pd.setDate(pd.getDate() + 1);
+      const expected = pd.getFullYear() + '-' + String(pd.getMonth() + 1).padStart(2, '0') + '-' + String(pd.getDate()).padStart(2, '0');
+      run = day === expected ? run + 1 : 1;
+    } else {
+      run = 1;
+    }
+    if (run > longest) longest = run;
+    prev = day;
+  }
+
+  // "Comodín" conceptual: solo lo decimos informativamente; no persistimos un contador
+  // (haría falta otra tabla). Lo mostramos siempre que la racha actual sea >=3.
+  const frozenAvailable = current >= 3;
+
+  return { current, longest, todayDone, frozenAvailable };
+}
+
 export async function setExamDate(date: string | null): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

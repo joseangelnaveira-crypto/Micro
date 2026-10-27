@@ -4,10 +4,12 @@
 @custom-variant dark (&:where(.dark-mode, .dark-mode *));
 
 :root{
-  --agar: #FFF6E7;
+  --agar: #FBF4E3;
+  --agar-deep: #F6ECD2;
   --dish-line: #F0DEBE;
   --dish-line-soft: rgba(240,222,190,0.6);
-  --surface: #FFFFFF;
+  --surface: #FFFDF8;
+  --surface-raised: #FFFFFF;
   --ink: #241E3D;
   --ink-soft: #5B5480;
   --graphite: #5B5480;
@@ -17,20 +19,20 @@
   --violet: #6D45D3;
 
   /* ---- Variables de shadcn/ui, mapeadas a nuestra propia paleta de arriba ---- */
-  --radius: 0.9rem;
+  --radius: 1.1rem;
   --background: var(--agar);
   --foreground: var(--ink);
   --card: var(--surface);
   --card-foreground: var(--ink);
-  --popover: var(--surface);
+  --popover: var(--surface-raised);
   --popover-foreground: var(--ink);
   --primary: var(--ink);
   --primary-foreground: #FFFFFF;
   --secondary: var(--violet);
   --secondary-foreground: #FFFFFF;
-  --muted: var(--dish-line);
+  --muted: var(--agar-deep);
   --muted-foreground: var(--graphite);
-  --accent: #F5EFFC;
+  --accent: #F2EBFB;
   --accent-foreground: var(--violet);
   --destructive: var(--contam);
   --destructive-foreground: #FFFFFF;
@@ -38,24 +40,29 @@
   --success-foreground: #FFFFFF;
   --warning: var(--amber);
   --warning-foreground: var(--ink);
-  --border: var(--dish-line-soft);
+  --border: rgba(109, 69, 211, 0.08);
   --input: var(--dish-line);
   --ring: var(--violet);
+
+  /* ---- Elevación: sombras tipo papel, no de "material design" ---- */
+  --shadow-paper: 0 1px 2px rgba(36, 30, 61, 0.04), 0 8px 24px -6px rgba(36, 30, 61, 0.08);
+  --shadow-paper-hover: 0 2px 4px rgba(36, 30, 61, 0.05), 0 14px 36px -8px rgba(36, 30, 61, 0.14);
+  --shadow-paper-lift: 0 4px 8px rgba(36, 30, 61, 0.06), 0 24px 48px -12px rgba(36, 30, 61, 0.18);
 }
 
 .dark-mode{
-  --background: #171923;
+  --background: #141520;
   --foreground: #ECE9F5;
-  --card: #1F2333;
+  --card: #1C1D2B;
   --card-foreground: #ECE9F5;
-  --popover: #1F2333;
+  --popover: #1F2232;
   --popover-foreground: #ECE9F5;
   --primary: #ECE9F5;
   --primary-foreground: #14161F;
   --secondary: #B29CFF;
   --secondary-foreground: #14161F;
-  --muted: #2D3348;
-  --muted-foreground: #8B85AA;
+  --muted: #262838;
+  --muted-foreground: #A7A1C4;
   --accent: rgba(178,156,255,0.14);
   --accent-foreground: #B29CFF;
   --destructive: #FF8272;
@@ -64,9 +71,13 @@
   --success-foreground: #14161F;
   --warning: #FFC168;
   --warning-foreground: #14161F;
-  --border: rgba(45,51,72,0.7);
+  --border: rgba(178, 156, 255, 0.12);
   --input: #2D3348;
   --ring: #B29CFF;
+
+  --shadow-paper: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -6px rgba(0, 0, 0, 0.4);
+  --shadow-paper-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 14px 36px -8px rgba(0, 0, 0, 0.5);
+  --shadow-paper-lift: 0 4px 8px rgba(0, 0, 0, 0.4), 0 24px 48px -12px rgba(0, 0, 0, 0.55);
 }
 
 @theme inline{
@@ -98,6 +109,9 @@
   --radius-md: calc(var(--radius) - 3px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 6px);
+  --shadow-paper: var(--shadow-paper);
+  --shadow-paper-hover: var(--shadow-paper-hover);
+  --shadow-paper-lift: var(--shadow-paper-lift);
 }
 
 @layer base{
@@ -109,23 +123,27 @@
 html, body{ height: 100%; margin: 0; }
 body{
   background:
-    radial-gradient(circle at 8% 12%, rgba(143,207,255,0.35), transparent 40%),
-    radial-gradient(circle at 92% 18%, rgba(244,163,64,0.22), transparent 38%),
-    radial-gradient(circle at 85% 88%, rgba(47,169,122,0.20), transparent 42%),
-    radial-gradient(circle at 12% 90%, rgba(239,99,81,0.14), transparent 40%),
+    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(109, 69, 211, 0.07), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 95% 20%, rgba(244, 163, 64, 0.08), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 90% 100%, rgba(27, 122, 80, 0.06), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 5% 85%, rgba(193, 58, 44, 0.05), transparent 60%),
     var(--agar);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
 }
 
 /* ---- Modo oscuro (paleta base + fondo decorativo) ---- */
 body.dark-mode{
-  --agar: #171923;
+  --agar: #141520;
+  --agar-deep: #1A1C2A;
   --dish-line: #2D3348;
   --dish-line-soft: rgba(45,51,72,0.7);
-  --surface: #1F2333;
+  --surface: #1C1D2B;
+  --surface-raised: #1F2232;
   --ink: #ECE9F5;
   --ink-soft: #B7B2D4;
   --graphite: #A7A1C4;
@@ -134,11 +152,12 @@ body.dark-mode{
   --amber: #FFC168;
   --violet: #B29CFF;
   background:
-    radial-gradient(circle at 8% 12%, rgba(94,150,255,0.14), transparent 40%),
-    radial-gradient(circle at 92% 18%, rgba(255,193,104,0.10), transparent 38%),
-    radial-gradient(circle at 85% 88%, rgba(62,209,140,0.10), transparent 42%),
-    radial-gradient(circle at 12% 90%, rgba(255,130,114,0.08), transparent 40%),
+    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(178, 156, 255, 0.08), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 95% 20%, rgba(255, 193, 104, 0.05), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 90% 100%, rgba(62, 209, 140, 0.05), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 5% 85%, rgba(255, 130, 114, 0.04), transparent 60%),
     var(--agar);
+  background-attachment: fixed;
 }
 
 /* ---- Gráfica de evolución ---- */
@@ -158,6 +177,37 @@ body.dark-mode{
 .trend-swatch.avg{ background: var(--violet); }
 .trend-swatch.pass{ background: var(--amber); }
 
+/* ---- Mini-ilustración de colonia (fondo decorativo de tarjetas destacadas) ---- */
+.colony-blob{
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(28px);
+  opacity: 0.5;
+}
+
+/* ---- Celebración (confeti suave) ---- */
+@keyframes confetti-fall {
+  0%   { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(540deg); opacity: 0; }
+}
+.confetti-piece{
+  position: fixed;
+  top: 0; width: 10px; height: 14px;
+  border-radius: 2px;
+  animation: confetti-fall linear forwards;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* ---- Rebote sutil al cambiar de pregunta ---- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.anim-fade-up { animation: fade-up 220ms ease-out both; }
+
 @media (prefers-reduced-motion: reduce){
   *{ transition: none !important; animation: none !important; }
+  .confetti-piece{ display: none !important; }
 }
