@@ -201,8 +201,13 @@ CHGUV 2025, OPE Madrid 2024 (plantilla PROVISIONAL, no hay definitiva) y los mis
   importador de imágenes; las columnas `image_url`/`source_page` siguen disponibles.
 - Pipeline reproducible en `scripts/ope/` (ver su README). Sin importar por falta de fuente fiable:
   Aragón 2024 (PDF escaneado y clave "válida" tras impugnaciones), CyL 2022 (solo 3 opciones),
-  Madrid 2025 2.º llamamiento (sin plantilla), Defensa 2023 (sin plantilla), Galicia (Sergas solo
-  publica plantillas de respuestas, no los cuestionarios; sus páginas de documentos daban error).
+  Madrid 2025 2.º llamamiento (sin plantilla), Defensa 2023 (sin plantilla).
+- **Galicia (Sergas)** SÍ publica examen + plantilla definitiva: lotes "OPE Galicia oct-2017 / sep-2021 /
+  mar-2024" (parte específica, versión castellana, PDFs escaneados transcritos a mano de la imagen y
+  contrastados con la plantilla oficial; descartadas anuladas, normativa, epidemiología y dudosas).
+  Truco: `extranet.sergas.es/OPEWB/OPE/ListadoAnexos.aspx?IdPaxina=60992&IdCategoria=<id>&Idioma=es`
+  (sin `IdPaxina` da error). Pendiente: parte común (legislación, no interesa) y el resto de CCAA
+  (Osakidetza, SESCAM, Murcia, ICS, Canarias, Baleares, Navarra, La Rioja, Extremadura, Asturias, INGESA).
 
 ## Posiblemente pendiente
 
