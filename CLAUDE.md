@@ -174,6 +174,36 @@ volver a abrir la app igual. Piezas clave:
   que la columna no exista todavía (fallback silencioso), para no romper la app si la
   migración no está aplicada en Supabase.
 
+## Cabecera, recuperación de contraseña y keep-alive (COMPLETADO)
+
+- `src/components/DashboardHeader.tsx`: cabecera fija tipo web (Inicio/Estadísticas/Historial/
+  Administración + racha, buscador, instalar, campana, tema, salir); en móvil, hamburguesa cuadrada
+  con panel desplegable. Hook `src/lib/use-install-pwa.ts` (sustituye a `InstallPWAButton`).
+- `/forgot-password` y `/reset-password` (Supabase recovery; `src/proxy.ts` los trata como públicos
+  y `/reset-password` no se redirige aunque haya sesión temporal).
+- `/api/keep-alive` (cron diario en `vercel.json`) evita que Supabase gratuito pause el proyecto.
+
+## Lotes de exámenes OPE publicados (COMPLETADO, oct-2026)
+
+Además del Murray 9ª (4837), el banco tiene lotes de exámenes OPE reales de FEA Microbiología y
+Parasitología, **cada uno con su propio `source`** (no mezclar, se pueden borrar desde `/admin/questions`):
+OPE SAS oct-2018 / ene-2019 (aplazada) / 2021 / 2023 / 2025, OPE Castilla y León 2021, OPE Valencia
+CHGUV 2025, OPE Madrid 2024 (plantilla PROVISIONAL, no hay definitiva) y los mismos SAS con sufijo
+"(casos clínicos)" (supuestos prácticos con el enunciado del caso incluido en la pregunta).
+
+- Criterio: solo exámenes ≥2016, solo plantilla DEFINITIVA (salvo Madrid), anuladas fuera, sin
+  legislación/estadística/gestión, sin preguntas dudosas o ambiguas (cada una se revisó a mano
+  contrastando la clave oficial). Sin explicaciones (el campo va vacío a propósito).
+- Casos clínicos: el texto guarda `enunciado del caso\n\npregunta`; `src/components/QuestionText.tsx`
+  muestra el caso en un bloque aparte. En los `.txt` de importación se escribe con ` ¶ ` y
+  `parseQuestionsText` lo convierte.
+- No hay preguntas con imagen en estos exámenes (los PDFs solo traen logos), por eso no se construyó
+  importador de imágenes; las columnas `image_url`/`source_page` siguen disponibles.
+- Pipeline reproducible en `scripts/ope/` (ver su README). Sin importar por falta de fuente fiable:
+  Aragón 2024 (PDF escaneado y clave "válida" tras impugnaciones), CyL 2022 (solo 3 opciones),
+  Madrid 2025 2.º llamamiento (sin plantilla), Defensa 2023 (sin plantilla), Galicia (Sergas solo
+  publica plantillas de respuestas, no los cuestionarios; sus páginas de documentos daban error).
+
 ## Posiblemente pendiente
 
 - Penalización por fallo configurable.

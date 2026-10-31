@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Sun, Moon, WifiOff, Trash2, Bell, BellOff, Check, X, Flag, Flame, FlaskConical, History as HistoryIcon, BarChart3, Zap } from 'lucide-react';
 import CommandPalette, { type PaletteAction } from '@/components/CommandPalette';
 import Confetti from '@/components/Confetti';
+import QuestionText from '@/components/QuestionText';
 import { hasPushSubscription } from './push-actions';
 import { enableReminders, disableReminders } from '@/lib/push-client';
 
@@ -812,7 +813,7 @@ export default function DashboardApp({
                 className="mb-4 max-h-[280px] w-full rounded-2xl border border-border object-contain bg-background"
               />
             )}
-            <p className="mb-5 text-xl font-bold leading-relaxed tracking-tight">{q.question}</p>
+            <QuestionText text={q.question} className="mb-5 text-xl font-bold leading-relaxed tracking-tight" caseClassName="mb-4" />
 
             <div className="flex flex-col gap-2">
               {options.map(([letter, text]) => {
@@ -988,7 +989,7 @@ export default function DashboardApp({
                 return (
                   <div key={r.question.id} className="border-t border-border/60 py-[15px] first:border-t-0 first:pt-0">
                     <p className="mb-2 flex items-start gap-1.5 text-[15px]">
-                      <span>{r.question.question}</span>
+                      <span className="whitespace-pre-line">{r.question.question}</span>
                       {flagged.has(r.question.id) && <Flag className="mt-1 size-3.5 flex-none fill-warning text-warning" />}
                     </p>
                     <div className="my-[3px] text-[13.5px] text-destructive">
@@ -1473,7 +1474,7 @@ export default function DashboardApp({
                         const key = `option_${item.correct.toLowerCase()}` as 'option_a' | 'option_b' | 'option_c' | 'option_d';
                         return (
                           <div key={item.id} className="border-b border-border/60 py-2.5 text-[13.5px] last:border-b-0">
-                            <div className="mb-[3px] text-foreground">{item.question}</div>
+                            <div className="mb-[3px] whitespace-pre-line text-foreground">{item.question}</div>
                             <div className="text-[11px] text-muted-foreground">✅ {item.correct}) {item[key]} · {item.source} · {item.topic}</div>
                           </div>
                         );

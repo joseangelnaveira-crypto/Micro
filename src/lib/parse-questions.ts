@@ -56,7 +56,8 @@ export function parseQuestionsText(raw: string, defaultSource?: string): ParsedQ
     for (const rawLine of lines) {
       const line = rawLine.trim();
       let m: RegExpMatchArray | null;
-      if ((m = line.match(/^PREGUNTA:\s*(.*)$/i))) question = m[1].trim();
+      // " ¶ " separa el enunciado de un caso clínico de la pregunta (se guarda como línea en blanco)
+      if ((m = line.match(/^PREGUNTA:\s*(.*)$/i))) question = m[1].trim().replace(/\s¶\s/g, '\n\n');
       else if ((m = line.match(/^A\)\s*(.*)$/))) a = m[1].trim();
       else if ((m = line.match(/^B\)\s*(.*)$/))) b = m[1].trim();
       else if ((m = line.match(/^C\)\s*(.*)$/))) c = m[1].trim();
