@@ -7,10 +7,10 @@ import {
   offlineStartExam, offlineStartReviewExam, offlineStartSmartReview, offlineSearchQuestions,
 } from '@/lib/offline/exam-engine';
 import { isBankReady, downloadBank, queueAttempt, hasPendingSync, drainQueue } from '@/lib/offline/sync';
-import InstallPWAButton from '@/components/InstallPWAButton';
+import DashboardHeader, { type HeaderTarget } from '@/components/DashboardHeader';
+import AnimatedNumber from '@/components/AnimatedNumber';
 import { scoreAttempt } from '@/lib/exam-utils';
 import { IconBook, IconFlask, IconChart, IconSearch, IconHistory, IconPetri } from '@/components/Icons';
-import SignOutButton from '@/components/SignOutButton';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -20,7 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Sun, Moon, WifiOff, Trash2, Bell, BellOff, Check, X, Flag, Search, Flame, FlaskConical, History as HistoryIcon, BarChart3, Zap } from 'lucide-react';
+import { Sun, Moon, WifiOff, Trash2, Bell, BellOff, Check, X, Flag, Flame, FlaskConical, History as HistoryIcon, BarChart3, Zap } from 'lucide-react';
 import CommandPalette, { type PaletteAction } from '@/components/CommandPalette';
 import Confetti from '@/components/Confetti';
 import { hasPushSubscription } from './push-actions';
@@ -85,7 +85,9 @@ function examComposition(questions: Question[]) {
 function StatBlock({ value, label }: { value: React.ReactNode; label: string }) {
   return (
     <div className="font-mono">
-      <b className="block text-[23px] font-bold leading-none tracking-tight">{value}</b>
+      <b className="block text-[23px] font-bold leading-none tracking-tight tabular-nums">
+        {typeof value === 'number' ? <AnimatedNumber value={value} /> : value}
+      </b>
       <span className="text-[10.5px] uppercase tracking-[1px] text-muted-foreground">{label}</span>
     </div>
   );
@@ -693,6 +695,17 @@ export default function DashboardApp({
   );
 
   const container = 'mx-auto max-w-[880px] px-3.5 pt-4 pb-10 md:px-5 md:pt-7 md:pb-12';
+  const homeContainer = 'mx-auto max-w-[1040px] px-3.5 pt-5 pb-12 md:px-5 md:pt-8 md:pb-16';
+
+  function goToSection(target: HeaderTarget) {
+    if (target === 'home') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    const el = document.getElementById(target === 'stats' ? 'section-stats' : 'section-history');
+    if (!el) return;
+    (el.querySelector('details') as HTMLDetailsElement | null)?.setAttribute('open', '');
+    // pequeño margen para que la cabecera sticky no tape el título
+    const y = el.getBoundingClientRect().top + window.scrollY - 80;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  }
 
   if (screen === 'exam') {
     const q = examQuestions[currentIndex];
@@ -1047,7 +1060,19 @@ export default function DashboardApp({
   }
 
   return (
-    <div className={container}>
+    <>
+      <DashboardHeader
+        isAdmin={isAdmin}
+        streak={streak}
+        darkMode={darkMode}
+        onToggleDark={toggleDarkMode}
+        remindersEnabled={remindersEnabled}
+        remindersBusy={remindersBusy}
+        onToggleReminders={toggleReminders}
+        onOpenSearch={() => setCommandOpen(true)}
+        onNavigate={goToSection}
+      />
+      <div className={homeContainer}>
       {modalNode}
       <Confetti trigger={confettiTrigger} />
       <CommandPalette
@@ -1056,55 +1081,6 @@ export default function DashboardApp({
         actions={buildPaletteActions()}
         onSearch={async (q) => searchQuestions({ query: q, source: null, topic: null })}
       />
-      <div className="sticky top-0 z-50 -mx-3.5 mb-5 flex items-center justify-between border-b border-border/50 bg-background/80 px-3.5 py-3 backdrop-blur-md md:-mx-5 md:px-5">
-        <div className="flex items-center gap-2">
-          <span className="text-secondary"><IconPetri /></span>
-          <h1 className="font-display text-xl italic tracking-normal">Academia de Microbiología</h1>
-        </div>
-        <div className="flex items-center gap-1.5 md:gap-2">
-          {streak && streak.current > 0 && (
-            <button
-              type="button"
-              onClick={() => { const el = document.getElementById('section-stats'); el?.scrollIntoView({ behavior: 'smooth' }); (el?.querySelector('details') as HTMLDetailsElement | null)?.setAttribute('open', ''); }}
-              className="hidden items-center gap-1 rounded-full border border-warning/50 bg-warning/10 px-2.5 py-1 text-[12px] font-bold text-[#8a5a00] transition-colors hover:bg-warning/20 sm:flex"
-              title={streak.todayDone ? `${streak.current} días seguidos estudiando — ¡sigue así!` : `${streak.current} días seguidos. Hoy aún no has estudiado.`}
-            >
-              <Flame className={cn('size-3.5', streak.todayDone && 'fill-current')} />
-              {streak.current}
-            </button>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => setCommandOpen(true)}
-            title="Buscar (Ctrl+K)"
-            aria-label="Buscar"
-          >
-            <Search className="size-4" />
-          </Button>
-          <InstallPWAButton />
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            disabled={remindersBusy}
-            onClick={toggleReminders}
-            title={remindersEnabled ? 'Desactivar recordatorios' : 'Avisarme si dejo de estudiar'}
-          >
-            {remindersEnabled ? <Bell className="size-4" /> : <BellOff className="size-4" />}
-          </Button>
-          <Button type="button" variant="outline" size="icon" onClick={toggleDarkMode} title="Modo oscuro">
-            {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          </Button>
-          {isAdmin && (
-            <Button asChild variant="ghost" size="auto">
-              <a href="/admin">Panel de administrador</a>
-            </Button>
-          )}
-          <SignOutButton />
-        </div>
-      </div>
 
       {!isOnline && (
         <Card className="mb-4 border-warning/60 bg-warning/5">
@@ -1149,7 +1125,7 @@ export default function DashboardApp({
         const sug = todaySuggestion();
         if (!sug) return null;
         return (
-          <Card className="mb-4 relative overflow-hidden border-secondary/30 bg-gradient-to-br from-card via-card to-secondary/[0.04]">
+          <Card className="card-lift anim-fade-up mb-4 relative overflow-hidden border-secondary/30 bg-gradient-to-br from-card via-card to-secondary/[0.04]" style={{ animationDelay: "40ms" }}>
             <span className="colony-blob" style={{ top: '-30px', right: '-30px', width: '150px', height: '150px', background: 'var(--colony)' }} />
             <span className="colony-blob" style={{ bottom: '-40px', right: '60px', width: '110px', height: '110px', background: 'var(--amber)' }} />
             <CardContent className="relative flex flex-wrap items-center justify-between gap-3 pt-6">
@@ -1166,7 +1142,7 @@ export default function DashboardApp({
         );
       })()}
 
-      <Card className="mb-4">
+      <Card className="anim-fade-up mb-4" style={{ animationDelay: "80ms" }}>
         <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
           {editingExamDate ? (
             <>
@@ -1235,47 +1211,70 @@ export default function DashboardApp({
         </CardContent>
       </Card>
 
-      <div className="mb-4 grid items-start gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2.5">
-              <span className="flex size-8 flex-none items-center justify-center rounded-[10px] bg-secondary/10 text-secondary">
+      {/* Banco: banda compacta a todo el ancho (cifras + lotes + progreso del ciclo) */}
+      <Card className="card-lift anim-fade-up mb-4" style={{ animationDelay: '120ms' }}>
+        <CardContent className="flex flex-col gap-5 pt-6">
+          <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
+            <div className="flex items-center gap-3">
+              <span className="flex size-10 flex-none items-center justify-center rounded-xl bg-secondary/10 text-secondary">
                 <IconBook />
               </span>
-              <CardTitle>Banco de preguntas</CardTitle>
+              <div>
+                <CardTitle>Banco de preguntas</CardTitle>
+                <p className="mt-1 text-[13px] text-muted-foreground">Bienvenido, {displayName}</p>
+              </div>
             </div>
-            <CardDescription>Bienvenido, {displayName}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-6">
+            <div className="flex flex-wrap gap-8">
               <StatBlock value={meta.total} label="en el banco" />
               <StatBlock value={globalCycle ? globalCycle.unseen : '…'} label="pendientes ciclo" />
             </div>
-            {meta.sources.length > 0 && (
-              <div className="mt-3.5">
-                <p className="mb-1 text-[13.5px] text-muted-foreground">Preguntas por libro/lote:</p>
-                {meta.sources.map(s => (
-                  <div key={s.name} className="flex justify-between py-[3px] text-[13px] text-muted-foreground">
-                    <span>{s.name}</span><b className="text-foreground">{s.count}</b>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card className="border-secondary/40 bg-gradient-to-br from-card via-card to-secondary/[0.04]">
-          <CardHeader>
-            <div className="flex items-center gap-2.5">
-              <span className="flex size-8 flex-none items-center justify-center rounded-[10px] bg-secondary text-secondary-foreground">
-                <IconFlask />
-              </span>
-              <CardTitle>Generar examen</CardTitle>
+          {globalCycle && globalCycle.total > 0 && (() => {
+            const pct = Math.round(((globalCycle.total - globalCycle.unseen) / globalCycle.total) * 100);
+            return (
+              <div>
+                <div className="mb-1.5 flex justify-between text-[11.5px] font-semibold text-muted-foreground">
+                  <span>Ciclo completado</span>
+                  <span className="font-mono">{pct}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-success to-warning transition-[width] duration-1000 ease-out"
+                    style={{ width: `${Math.max(pct, pct > 0 ? 2 : 0)}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
+
+          {meta.sources.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[12px] font-semibold uppercase tracking-[1px] text-muted-foreground">Lotes</span>
+              {meta.sources.map(s => (
+                <span key={s.name} className="rounded-full border border-border bg-background px-3 py-1 text-[12.5px] text-muted-foreground">
+                  {s.name} <b className="font-mono text-foreground">{s.count}</b>
+                </span>
+              ))}
             </div>
-          </CardHeader>
-          <CardContent>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Generar examen: a todo el ancho, formulario en rejilla */}
+      <Card className="card-lift anim-fade-up mb-4 border-secondary/40 bg-gradient-to-br from-card via-card to-secondary/[0.04]" style={{ animationDelay: '180ms' }}>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 flex-none items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+              <IconFlask />
+            </span>
+            <CardTitle>Generar examen</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-x-4 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
             {meta.sources.length > 1 && (
-              <div className="mb-3.5 flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label>Fuente</Label>
                 <Select value={sourceFilter} onValueChange={setSourceFilter}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1289,7 +1288,7 @@ export default function DashboardApp({
               </div>
             )}
             {meta.topics.length > 1 && (
-              <div className="mb-3.5 flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label>Tema</Label>
                 <Select value={topicFilter} onValueChange={setTopicFilter}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1302,71 +1301,74 @@ export default function DashboardApp({
                 </Select>
               </div>
             )}
-            <div className="mb-1.5">
+            <div className="flex flex-col gap-1.5">
               <Label>Número de preguntas</Label>
-            </div>
-            <div className="mb-3.5 flex gap-2.5">
               <Input
                 type="number"
                 min={1}
                 value={numQuestions}
                 onChange={e => setNumQuestions(Math.max(1, parseInt(e.target.value) || 1))}
               />
-              <Button type="button" size="auto" disabled={starting || meta.total === 0} onClick={handleStartExam}>
-                {starting ? 'Generando…' : 'Empezar examen'}
-              </Button>
             </div>
-            {meta.total === 0 ? (
-              <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-                Todavía no hay preguntas en el banco. {isAdmin ? (
-                  <a href="/admin/questions" className="font-bold text-secondary hover:underline">Impórtalas desde el panel de administrador</a>
-                ) : 'Pídele al administrador que las suba.'}
-              </p>
-            ) : filterCycle && (
-              <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-                Se generará un examen con {Math.min(numQuestions, filterCycle.total)} de las {filterCycle.total} preguntas disponibles
-                {sourceFilter !== 'Todas' || topicFilter !== 'Todos' ? ' con este filtro' : ''} ({filterCycle.unseen} pendientes todavía en el ciclo).
-              </p>
-            )}
-            <div className="mb-1.5 mt-3.5">
+            <div className="flex flex-col gap-1.5">
               <Label>Nota de corte (%)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={passMark}
+                onChange={e => setPassMark(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+              />
             </div>
-            <Input
-              type="number"
-              min={0}
-              max={100}
-              value={passMark}
-              onChange={e => setPassMark(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
-              className="mb-3.5"
-            />
-            <div className="mb-1.5">
+            <div className="flex flex-col gap-1.5">
               <Label>Tiempo límite (min · 0 = sin límite)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={600}
+                value={timeLimitMinutes}
+                onChange={e => setTimeLimitMinutes(Math.max(0, Math.min(600, parseInt(e.target.value) || 0)))}
+              />
             </div>
-            <Input
-              type="number"
-              min={0}
-              max={600}
-              value={timeLimitMinutes}
-              onChange={e => setTimeLimitMinutes(Math.max(0, Math.min(600, parseInt(e.target.value) || 0)))}
-              className="mb-3.5"
-            />
+          </div>
+
+          {meta.total === 0 ? (
+            <p className="mt-4 text-[13.5px] leading-relaxed text-muted-foreground">
+              Todavía no hay preguntas en el banco. {isAdmin ? (
+                <a href="/admin/questions" className="font-bold text-secondary hover:underline">Impórtalas desde el panel de administrador</a>
+              ) : 'Pídele al administrador que las suba.'}
+            </p>
+          ) : filterCycle && (
+            <p className="mt-4 text-[13.5px] leading-relaxed text-muted-foreground">
+              Se generará un examen con {Math.min(numQuestions, filterCycle.total)} de las {filterCycle.total} preguntas disponibles
+              {sourceFilter !== 'Todas' || topicFilter !== 'Todos' ? ' con este filtro' : ''} ({filterCycle.unseen} pendientes todavía en el ciclo).
+            </p>
+          )}
+
+          <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
+            <Button type="button" size="lg" className="w-full sm:flex-1" disabled={starting || meta.total === 0} onClick={handleStartExam}>
+              {starting ? 'Generando…' : 'Empezar examen'}
+            </Button>
             <Button
               type="button"
               variant="secondary"
-              block
+              size="lg"
+              className="w-full sm:flex-1"
               disabled={starting || !smartAvailable}
               onClick={handleSmartReview}
-              className="h-auto whitespace-normal py-3 text-center leading-snug"
             >
-              Repaso inteligente (prioriza las preguntas con más fallos)
+              Repaso inteligente
             </Button>
-            {!smartAvailable && <p className="mt-2 text-[13.5px] text-muted-foreground">Disponible en cuanto hayas respondido alguna pregunta.</p>}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+          <p className="mt-2.5 text-[12.5px] text-muted-foreground">
+            El repaso inteligente prioriza las preguntas con más fallos
+            {!smartAvailable && ' — disponible en cuanto hayas respondido alguna pregunta'}.
+          </p>
+        </CardContent>
+      </Card>
 
       {studyStats && studyStats.totalAnswered > 0 && (
-        <Card id="section-stats" className="mb-4">
+        <Card id="section-stats" className="anim-fade-up mb-4" style={{ animationDelay: "240ms" }}>
           <CardContent className="pt-6">
             <details className="group">
               <summary className="font-display mb-0 flex cursor-pointer list-none items-center gap-2 text-[19px] italic marker:content-none group-open:mb-3.5">
@@ -1421,7 +1423,7 @@ export default function DashboardApp({
         </Card>
       )}
 
-      <div className="grid items-start gap-4 md:grid-cols-2">
+      <div className="flex flex-col gap-4">
         <Card>
           <CardContent className="pt-6">
             <details className="group">
@@ -1484,7 +1486,7 @@ export default function DashboardApp({
           </CardContent>
         </Card>
 
-        <Card id="section-history">
+        <Card id="section-history" className="anim-fade-up" style={{ animationDelay: "320ms" }}>
           <CardContent className="pt-6">
             <details className="group">
               <summary className="font-display mb-0 flex cursor-pointer list-none items-center gap-2 text-[19px] italic marker:content-none group-open:mb-3.5">
@@ -1548,6 +1550,7 @@ export default function DashboardApp({
         </Card>
       </div>
     </div>
+    </>
   );
 }
 

@@ -121,6 +121,8 @@
 
 *{ box-sizing: border-box; }
 html, body{ height: 100%; margin: 0; }
+/* clip (no hidden): evita el desplazamiento lateral en móvil sin romper el header sticky */
+html, body{ overflow-x: clip; }
 body{
   background:
     radial-gradient(ellipse 70% 50% at 15% 0%, rgba(109, 69, 211, 0.07), transparent 60%),
@@ -200,12 +202,31 @@ body.dark-mode{
   z-index: 100;
 }
 
-/* ---- Rebote sutil al cambiar de pregunta ---- */
+/* ---- Entradas y microanimaciones ---- */
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.anim-fade-up { animation: fade-up 220ms ease-out both; }
+.anim-fade-up { animation: fade-up 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.anim-fade { animation: fade-in 200ms ease-out both; }
+
+/* Menú móvil: cae desde la cabecera */
+@keyframes menu-drop {
+  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.anim-menu { animation: menu-drop 220ms cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: top right; }
+
+/* Tarjetas que reaccionan al pasar el ratón (solo dispositivos con hover real) */
+@media (hover: hover) {
+  .card-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-paper-hover);
+  }
+}
+.card-lift { transition: transform 200ms ease, box-shadow 200ms ease; }
 
 @media (prefers-reduced-motion: reduce){
   *{ transition: none !important; animation: none !important; }
