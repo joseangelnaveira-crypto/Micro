@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Question, ExamAttempt, BankMeta, FinishExamPayload } from '@/lib/exam-types';
-import { startExam, startReviewExam, startSmartReview, finishExam, getHistory, getStudyStats, searchQuestions, getCycleProgress, deleteExamAttempt, reportQuestionError, setExamDate as setExamDateAction, getStreak, type StudyStats, type StreakInfo } from './actions';
+import { startExam, startReviewExam, startSmartReview, startOfficialExam, startDueReview, getDueCount, finishExam, getHistory, getStudyStats, searchQuestions, getCycleProgress, deleteExamAttempt, reportQuestionError, setExamDate as setExamDateAction, getStreak, type StudyStats, type StreakInfo } from './actions';
 import {
   offlineStartExam, offlineStartReviewExam, offlineStartSmartReview, offlineSearchQuestions,
 } from '@/lib/offline/exam-engine';
 import { isBankReady, downloadBank, queueAttempt, hasPendingSync, drainQueue } from '@/lib/offline/sync';
 import DashboardHeader, { type HeaderTarget } from '@/components/DashboardHeader';
 import AnimatedNumber from '@/components/AnimatedNumber';
-import { scoreAttempt } from '@/lib/exam-utils';
+import { scoreAttempt, PENALTY_OPTIONS } from '@/lib/exam-utils';
 import { IconBook, IconFlask, IconChart, IconSearch, IconHistory, IconPetri } from '@/components/Icons';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,7 @@ type SavedProgress = {
   affectsCycle: boolean;
   savedAt: string;
   timeLimitMinutes?: number;
+  penalty?: number;
 };
 
 type Modal = {
@@ -169,6 +170,10 @@ export default function DashboardApp({
   // Modo simulacro: cronómetro real que termina el examen automáticamente al llegar a 0.
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(0); // 0 = sin límite
   const timeLimitRef = useRef<number>(0);
+  // Penalización por fallo (acierto que resta cada fallo; 0 = ninguna). Se congela por examen.
+  const [penalty, setPenalty] = useState(0);
+  const penaltyRef = useRef<number>(0);
+  const [dueCount, setDueCount] = useState(0);
 
   const [modal, setModal] = useState<Modal | null>(null);
   function showConfirm(message: string, onConfirm: () => void, opts?: { confirmLabel?: string; danger?: boolean }) {
@@ -382,6 +387,7 @@ export default function DashboardApp({
       affectsCycle: affectsCycleRef.current,
       savedAt: new Date().toISOString(),
       timeLimitMinutes: timeLimitRef.current,
+      penalty: penaltyRef.current,
       ...overrides,
     };
     try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(payload)); } catch { /* noop */ }
@@ -396,6 +402,7 @@ export default function DashboardApp({
     clientUuidRef.current = crypto.randomUUID();
     affectsCycleRef.current = affectsCycle;
     timeLimitRef.current = timeLimitMinutes; // se congela para este examen
+    penaltyRef.current = penalty;
     setExamQuestions(questions);
     setCurrentIndex(0);
     setSelected(null);
@@ -446,6 +453,28 @@ export default function DashboardApp({
     handleStart(questions, false);
   }
 
+  async function handleOfficialExam() {
+    if (sourceFilter === 'Todas') {
+      showAlert('Elige primero en «Fuente» el examen oficial que quieres simular.');
+      return;
+    }
+    if (!isOnline) { showAlert('El simulacro oficial necesita conexión para cargar el examen en su orden original.'); return; }
+    setStarting(true);
+    const questions = await startOfficialExam(sourceFilter);
+    setStarting(false);
+    if (questions.length === 0) { showAlert('Ese lote no tiene preguntas.'); return; }
+    handleStart(questions, false);
+  }
+
+  async function handleDueReview() {
+    if (!isOnline) { showAlert('«Para hoy» necesita conexión.'); return; }
+    setStarting(true);
+    const questions = await startDueReview(numQuestions);
+    setStarting(false);
+    if (questions.length === 0) { showAlert('No tienes preguntas pendientes de repaso para hoy. Vuelve mañana o haz un examen.'); return; }
+    handleStart(questions, false);
+  }
+
   async function handleRepeat(attempt: ExamAttempt) {
     const questions = isOnline
       ? await startReviewExam(attempt.question_ids)
@@ -470,6 +499,7 @@ export default function DashboardApp({
     clientUuidRef.current = savedProgress.clientUuid;
     affectsCycleRef.current = savedProgress.affectsCycle ?? true;
     timeLimitRef.current = savedProgress.timeLimitMinutes ?? 0;
+    penaltyRef.current = savedProgress.penalty ?? 0;
     setExamQuestions(savedProgress.examQuestions);
     setCurrentIndex(savedProgress.currentIndex);
     setSelected(savedProgress.selected);
@@ -574,6 +604,7 @@ export default function DashboardApp({
       source: sourceFilter === 'Todas' ? null : sourceFilter,
       topic: topicFilter === 'Todos' ? null : topicFilter,
       affectsCycle: affectsCycleRef.current,
+      penalty: penaltyRef.current,
     };
 
     let attempt: ExamAttempt;
@@ -959,7 +990,7 @@ export default function DashboardApp({
                 {celebration}
               </p>
             )}
-            <p className="mt-2 text-[13.5px] text-muted-foreground">Nota de corte: {lastAttempt.pass_mark}%</p>
+            <p className="mt-2 text-[13.5px] text-muted-foreground">Nota de corte: {lastAttempt.pass_mark}%{penaltyRef.current > 0 ? ` · cada fallo restó ${penaltyRef.current === 1 / 3 ? '1/3' : penaltyRef.current === 0.25 ? '1/4' : penaltyRef.current === 0.5 ? '1/2' : '1'} de acierto` : ''}</p>
             <div className="mt-5 flex flex-wrap justify-center gap-2.5">
               <Button type="button" variant="ghost" size="auto" onClick={backHome}>Volver al inicio</Button>
               {flagged.size > 0 && (
@@ -1015,6 +1046,7 @@ export default function DashboardApp({
   }
 
   const smartAvailable = studyStats ? studyStats.totalAnswered > 0 : false;
+  useEffect(() => { if (isOnline) getDueCount().then(setDueCount).catch(() => {}); }, [isOnline, screen]);
 
   // Sugerencia "qué toca hoy": una sola recomendación clara en función del estado.
   // Priorizamos (en este orden): examen en curso > repaso inteligente si hay fallos >
@@ -1250,14 +1282,20 @@ export default function DashboardApp({
           })()}
 
           {meta.sources.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[12px] font-semibold uppercase tracking-[1px] text-muted-foreground">Lotes</span>
-              {meta.sources.map(s => (
-                <span key={s.name} className="rounded-full border border-border bg-background px-3 py-1 text-[12.5px] text-muted-foreground">
-                  {s.name} <b className="font-mono text-foreground">{s.count}</b>
-                </span>
-              ))}
-            </div>
+            <details className="group">
+              <summary className="flex cursor-pointer list-none items-center gap-2 text-[12px] font-semibold uppercase tracking-[1px] text-muted-foreground marker:content-none">
+                Lotes <span className="font-mono normal-case tracking-normal text-foreground">{meta.sources.length}</span>
+                <span className="text-[11px] normal-case tracking-normal group-open:hidden">· mostrar</span>
+                <span className="hidden text-[11px] normal-case tracking-normal group-open:inline">· ocultar</span>
+              </summary>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {meta.sources.map(s => (
+                  <span key={s.name} className="rounded-full border border-border bg-background px-3 py-1 text-[12.5px] text-muted-foreground">
+                    {s.name} <b className="font-mono text-foreground">{s.count}</b>
+                  </span>
+                ))}
+              </div>
+            </details>
           )}
         </CardContent>
       </Card>
@@ -1331,6 +1369,17 @@ export default function DashboardApp({
                 onChange={e => setTimeLimitMinutes(Math.max(0, Math.min(600, parseInt(e.target.value) || 0)))}
               />
             </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Penalización por fallo</Label>
+              <Select value={String(penalty)} onValueChange={v => setPenalty(Number(v))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PENALTY_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {meta.total === 0 ? (
@@ -1361,6 +1410,18 @@ export default function DashboardApp({
               Repaso inteligente
             </Button>
           </div>
+          <div className="mt-2.5 flex flex-col gap-2.5 sm:flex-row">
+            <Button type="button" variant="outline" size="lg" className="w-full sm:flex-1" disabled={starting || sourceFilter === 'Todas'} onClick={handleOfficialExam}>
+              Simulacro oficial
+            </Button>
+            <Button type="button" variant="outline" size="lg" className="w-full sm:flex-1" disabled={starting || dueCount === 0} onClick={handleDueReview}>
+              Para hoy{dueCount > 0 ? ` (${dueCount})` : ''}
+            </Button>
+          </div>
+          <p className="mt-2.5 text-[12.5px] text-muted-foreground">
+            El simulacro oficial carga entero el examen elegido en «Fuente», en su orden original, con la nota de corte, el tiempo y la penalización de arriba.
+            «Para hoy» repasa las preguntas que la repetición espaciada te toca ver hoy.
+          </p>
           <p className="mt-2.5 text-[12.5px] text-muted-foreground">
             El repaso inteligente prioriza las preguntas con más fallos
             {!smartAvailable && ' — disponible en cuanto hayas respondido alguna pregunta'}.

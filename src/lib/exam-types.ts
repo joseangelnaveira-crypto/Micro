@@ -50,6 +50,8 @@ export type FinishExamPayload = {
   source: string | null;
   topic: string | null;
   affectsCycle: boolean;
+  /** Acierto que resta cada fallo (0 = sin penalización). */
+  penalty?: number;
 };
 
 export type QuestionStat = {

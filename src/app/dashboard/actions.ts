@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllIds } from '@/lib/fetch-all';
 import type { Question, ExamAttempt, BankMeta, FinishExamPayload } from '@/lib/exam-types';
-import { shuffle, scoreAttempt, applyAttemptToStats } from '@/lib/exam-utils';
+import { shuffle, scoreAttempt, applyAttemptToStats, nextSrsState } from '@/lib/exam-utils';
 
 export async function getBankMeta(): Promise<BankMeta> {
   const supabase = await createClient();
@@ -159,21 +159,33 @@ export async function finishExam(payload: FinishExamPayload): Promise<ExamAttemp
   // (aparece en el historial) y era un examen normal generado desde cero --
   // ni un examen abandonado a medias ni un repaso de falladas/marcadas/repaso
   // inteligente/repetición cuentan para el ciclo.
+  // La repetición espaciada (interval_days/ease/due_at) vive en columnas de la migración 10.
+  // Si todavía no está aplicada en Supabase se omite sin romper el examen.
+  let srsAvailable = true;
   for (let i = 0; i < payload.questionIds.length; i++) {
     const qId = payload.questionIds[i];
     const wasCorrect = payload.correctByQuestion[i];
     const { data: existing } = await supabase
       .from('question_stats')
-      .select('seen, correct, last_seen_at')
+      .select('*')
       .eq('user_id', user.id)
       .eq('question_id', qId)
       .maybeSingle();
 
-    await supabase.from('question_stats').upsert({
+    const base = {
       user_id: user.id,
       question_id: qId,
       ...applyAttemptToStats(existing, wasCorrect, payload.affectsCycle),
-    }, { onConflict: 'user_id,question_id' });
+    };
+    if (srsAvailable) {
+      const { error: srsError } = await supabase.from('question_stats').upsert(
+        { ...base, ...nextSrsState(existing, wasCorrect) },
+        { onConflict: 'user_id,question_id' }
+      );
+      if (!srsError) continue;
+      srsAvailable = false;
+    }
+    await supabase.from('question_stats').upsert(base, { onConflict: 'user_id,question_id' });
   }
 
   return attempt as ExamAttempt;
@@ -529,4 +541,60 @@ export async function reportQuestionError(questionId: string, reason: string): P
     reason: trimmed,
   });
   if (error) throw new Error(error.message);
+}
+
+
+/**
+ * Simulacro oficial: todas las preguntas de UNA fuente (un examen real), en su orden original
+ * (columna `position`, migración 10; si no está rellena cae a created_at/id).
+ * No gasta el ciclo de no-repetición (se trata como un repaso).
+ */
+export async function startOfficialExam(source: string): Promise<Question[]> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('No autenticado');
+
+  const all: Question[] = [];
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    let query = supabase.from('questions').select('*').eq('source', source);
+    const withPosition = await supabase.from('questions').select('position').limit(1);
+    query = withPosition.error
+      ? query.order('created_at', { ascending: true }).order('id', { ascending: true })
+      : query.order('position', { ascending: true, nullsFirst: false }).order('id', { ascending: true });
+    const { data, error } = await query.range(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    all.push(...((data ?? []) as Question[]));
+    if (!data || data.length < PAGE) break;
+  }
+  return all;
+}
+
+/** Preguntas "para hoy" según la repetición espaciada (due_at vencido). */
+export async function getDueCount(): Promise<number> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 0;
+  const { count, error } = await supabase
+    .from('question_stats')
+    .select('question_id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .lte('due_at', new Date().toISOString());
+  if (error) return 0; // migración 10 sin aplicar
+  return count ?? 0;
+}
+
+export async function startDueReview(numQuestions: number): Promise<Question[]> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('No autenticado');
+  const { data: due, error } = await supabase
+    .from('question_stats')
+    .select('question_id')
+    .eq('user_id', user.id)
+    .lte('due_at', new Date().toISOString())
+    .order('due_at', { ascending: true })
+    .limit(numQuestions);
+  if (error || !due || due.length === 0) return [];
+  return startReviewExam(due.map(r => r.question_id));
 }

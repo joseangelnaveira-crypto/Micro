@@ -154,6 +154,17 @@ export default function QuestionsAdmin({
 
   return (
     <div className="flex flex-col gap-4">
+      <Card>
+        <CardHeader><CardTitle>Copias de seguridad</CardTitle></CardHeader>
+        <CardContent className="flex flex-col gap-2.5 sm:flex-row">
+          <Button asChild variant="outline" className="w-full sm:flex-1">
+            <a href="/api/export?what=questions" download>Descargar banco de preguntas (JSON)</a>
+          </Button>
+          <Button asChild variant="outline" className="w-full sm:flex-1">
+            <a href="/api/export?what=results" download>Descargar mis resultados (JSON)</a>
+          </Button>
+        </CardContent>
+      </Card>
       {reports.length > 0 && (
         <Card>
           <CardHeader>

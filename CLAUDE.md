@@ -237,9 +237,24 @@ Pendiente: página para las preguntas del Murray (tienen explicación, no págin
 - **En desarrollo (`npm run dev`)** el service worker cachea `/_next/static` sin hash y se ven versiones
   antiguas: borrar en la consola `navigator.serviceWorker.getRegistrations()` + `caches.keys()` y recargar.
 
-## Posiblemente pendiente
+## Simulacro oficial, repetición espaciada, copias y aviso de versión (COMPLETADO, nov-2026)
 
-- Penalización por fallo configurable.
+- **Penalización por fallo** configurable al generar examen (`PENALTY_OPTIONS`, `scoreAttempt(...penalty)` en
+  `src/lib/exam-utils.ts`; la nota guardada ya la incluye, sin columna nueva). Las blancas no penalizan.
+- **Simulacro oficial**: botón que carga entero el examen elegido en «Fuente» en su orden original
+  (`startOfficialExam`, orden por `questions.position`, que rellena `scripts/fill-positions.mjs` desde
+  `scripts/ope/posiciones.json`; si falta cae a created_at/id). No gasta el ciclo. Solo online.
+- **Repetición espaciada («Para hoy»)**: SM-2 simplificado (`nextSrsState`), columnas `interval_days/ease/due_at`
+  en `question_stats`. `finishExam` las actualiza y, si la migración no está aplicada, lo omite sin romper.
+  `getDueCount/startDueReview`. Independiente del ciclo de no-repetición y de las estadísticas de acierto.
+- **Migración 10** (`00000000000010_...sql`): hay que pegarla a mano en Supabase; después ejecutar
+  `node --env-file=.env.local scripts/fill-positions.mjs`.
+- **Temas**: `scripts/reclassify-topics.mjs` (--apply) reclasificó 256 de las 380 de «General / otros».
+- **Copias de seguridad**: `/api/export?what=questions|results` (JSON; botones en `/admin/questions`).
+- **Aviso de versión nueva** del service worker (`RegisterServiceWorker.tsx` + mensaje `SKIP_WAITING` en `sw.js`).
+- Tests: `npm test` (node:test vía tsx, `src/lib/*.test.ts`).
+- Lotes del banco plegados en un desplegable en la tarjeta «Banco de preguntas».
+- Sin hacer: página del Murray para las preguntas del Murray; dividir `DashboardApp.tsx`; crear usuarios desde admin.
 
 ## Cómo se prueba
 

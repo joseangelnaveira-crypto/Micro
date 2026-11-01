@@ -11,6 +11,11 @@ self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(STATIC_CACHE));
 });
 
+// La página avisa «hay versión nueva» y, si el usuario acepta, pide activarla.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((names) =>
