@@ -88,7 +88,7 @@ export default function SignupPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="mb-4 rounded-xl border border-destructive bg-destructive/10 px-3.5 py-2.5 text-[13.5px] text-destructive">
+            <div role="alert" className="mb-4 rounded-xl border border-destructive bg-destructive/10 px-3.5 py-2.5 text-[13.5px] text-destructive">
               {error}
             </div>
           )}

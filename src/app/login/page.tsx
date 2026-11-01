@@ -61,7 +61,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="mb-4 rounded-xl border border-destructive bg-destructive/10 px-3.5 py-2.5 text-[13.5px] text-destructive">
+            <div role="alert" className="mb-4 rounded-xl border border-destructive bg-destructive/10 px-3.5 py-2.5 text-[13.5px] text-destructive">
               {error}
             </div>
           )}
@@ -84,13 +84,11 @@ export default function LoginPage() {
               <Input id="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" required value={email} onChange={e => setEmail(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Contraseña</Label>
-                <a href="/forgot-password" className="-my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-secondary hover:underline">
-                  ¿La has olvidado?
-                </a>
-              </div>
+              <Label htmlFor="password">Contraseña</Label>
               <PasswordInput id="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} />
+              <a href="/forgot-password" className="-mb-2 inline-flex min-h-11 items-center self-end text-[13px] font-semibold text-secondary hover:underline">
+                ¿La has olvidado?
+              </a>
             </div>
             <Button type="submit" block disabled={loading !== null}>
               {loading === 'email' ? 'Entrando…' : 'Entrar'}

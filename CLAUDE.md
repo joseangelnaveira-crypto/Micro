@@ -215,6 +215,17 @@ CHGUV 2025, OPE Madrid 2024 (plantilla PROVISIONAL, no hay definitiva) y los mis
   Aragón feb-2022 y mar-2018 (ya descargados/OCR en scratchpad; claves y anuladas conocidas: 2022 anuladas
   7, 46, 67; 2018 anuladas 13, 27, 33, 88, 103).
 
+## Pantallas de acceso y accesibilidad (COMPLETADO)
+
+- `src/components/AuthBrand.tsx` (marca única: placa de Petri + serif cursiva) y `ui/password-input.tsx`
+  (ojo mostrar/ocultar) se usan en login, registro, olvidé/restablecer contraseña y pendiente.
+- Campos a 16 px en móvil (evita el zoom de iOS), `autoComplete`/`inputMode`, enlaces de 44 px,
+  `role="alert"` en los errores y borde de controles (`--input`) con contraste >=3:1 en claro y oscuro.
+- No poner `height:100%` en `html`/`body`: Radix bloquea el scroll con `body{overflow:hidden}` y la página
+  saltaba arriba al abrir un desplegable/diálogo.
+- **En desarrollo (`npm run dev`)** el service worker cachea `/_next/static` sin hash y se ven versiones
+  antiguas: borrar en la consola `navigator.serviceWorker.getRegistrations()` + `caches.keys()` y recargar.
+
 ## Posiblemente pendiente
 
 - Penalización por fallo configurable.
