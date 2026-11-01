@@ -220,6 +220,8 @@ export default function DashboardApp({
     }).then(setFilterCycle);
   }
 
+  useEffect(() => { if (isOnline) getDueCount().then(setDueCount).catch(() => {}); }, [isOnline, screen]);
+
   useEffect(() => {
     const online = navigator.onLine;
     setIsOnline(online);
@@ -1046,7 +1048,6 @@ export default function DashboardApp({
   }
 
   const smartAvailable = studyStats ? studyStats.totalAnswered > 0 : false;
-  useEffect(() => { if (isOnline) getDueCount().then(setDueCount).catch(() => {}); }, [isOnline, screen]);
 
   // Sugerencia "qué toca hoy": una sola recomendación clara en función del estado.
   // Priorizamos (en este orden): examen en curso > repaso inteligente si hay fallos >
