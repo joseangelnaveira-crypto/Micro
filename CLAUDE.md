@@ -207,7 +207,13 @@ CHGUV 2025, OPE Madrid 2024 (plantilla PROVISIONAL, no hay definitiva) y los mis
   contrastados con la plantilla oficial; descartadas anuladas, normativa, epidemiología y dudosas).
   Truco: `extranet.sergas.es/OPEWB/OPE/ListadoAnexos.aspx?IdPaxina=60992&IdCategoria=<id>&Idioma=es`
   (sin `IdPaxina` da error). Pendiente: parte común (legislación, no interesa) y el resto de CCAA
-  (Osakidetza, SESCAM, Murcia, ICS, Canarias, Baleares, Navarra, La Rioja, Extremadura, Asturias, INGESA).
+  (Osakidetza, SESCAM, Murcia, ICS, Canarias, Navarra, La Rioja, Extremadura, Asturias, INGESA: no se
+  encontró cuestionario público en las búsquedas; Baleares publica solo la "plantilla correctora").
+- **Aragón** (aragon.es, página de cada OPE: cuadernillo + "respuestas válidas"): lotes "OPE Aragón ene-2024"
+  y "OPE Aragón may-2025" (escaneados; OCR con Windows OCR es-ES vía PowerShell (`winocr.ps1`) conserva
+  tildes pero no es fiable en maquetación, así que se transcribe mirando la imagen). Pendientes de transcribir:
+  Aragón feb-2022 y mar-2018 (ya descargados/OCR en scratchpad; claves y anuladas conocidas: 2022 anuladas
+  7, 46, 67; 2018 anuladas 13, 27, 33, 88, 103).
 
 ## Posiblemente pendiente
 
