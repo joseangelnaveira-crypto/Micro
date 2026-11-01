@@ -120,7 +120,10 @@
 }
 
 *{ box-sizing: border-box; }
-html, body{ height: 100%; margin: 0; }
+/* Sin height:100% en html/body: Radix bloquea el scroll con body{overflow:hidden} y, con altura fija,
+   el body se vuelve contenedor de scroll y la página salta arriba al abrir un desplegable/diálogo. */
+html, body{ margin: 0; }
+body{ min-height: 100dvh; }
 /* clip (no hidden): evita el desplazamiento lateral en móvil sin romper el header sticky */
 html, body{ overflow-x: clip; }
 body{
