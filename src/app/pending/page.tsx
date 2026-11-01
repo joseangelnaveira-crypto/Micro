@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import SignOutButton from '@/components/SignOutButton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Beaker, Clock3, ShieldX } from 'lucide-react';
+import { Clock3, ShieldX } from 'lucide-react';
+import AuthBrand from '@/components/AuthBrand';
 
 export default async function PendingPage() {
   const supabase = await createClient();
@@ -19,12 +20,7 @@ export default async function PendingPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-5 py-12">
-      <div className="mb-7 flex items-center gap-2.5">
-        <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-          <Beaker className="size-5" />
-        </div>
-        <h1 className="text-xl font-extrabold tracking-tight">Academia de Microbiología</h1>
-      </div>
+      <AuthBrand />
 
       <Card className="w-full max-w-[420px]">
         <CardHeader>

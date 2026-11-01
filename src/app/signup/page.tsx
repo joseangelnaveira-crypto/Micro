@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
+import AuthBrand from '@/components/AuthBrand';
 import { Label } from '@/components/ui/label';
 import {
   Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Beaker, MailCheck } from 'lucide-react';
+import { MailCheck } from 'lucide-react';
 
 // Desactivado temporalmente a petición del usuario -- no se borra el flujo, solo se oculta.
 const GOOGLE_SIGNUP_ENABLED = false;
@@ -50,14 +52,7 @@ export default function SignupPage() {
     setDone(true);
   }
 
-  const brand = (
-    <div className="mb-7 flex items-center gap-2.5">
-      <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-        <Beaker className="size-5" />
-      </div>
-      <h1 className="text-xl font-extrabold tracking-tight">Academia de Microbiología</h1>
-    </div>
-  );
+  const brand = <AuthBrand />;
 
   if (done) {
     return (
@@ -113,15 +108,15 @@ export default function SignupPage() {
           <form onSubmit={handleEmailSignup} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="name">Nombre</Label>
-              <Input id="name" type="text" required value={name} onChange={e => setName(e.target.value)} />
+              <Input id="name" type="text" autoComplete="name" required value={name} onChange={e => setName(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+              <Input id="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" required value={email} onChange={e => setEmail(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="password">Contraseña</Label>
-              <Input id="password" type="password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} />
+              <PasswordInput id="password" autoComplete="new-password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} />
             </div>
             <Button type="submit" block disabled={loading !== null}>
               {loading === 'email' ? 'Creando cuenta…' : 'Crear cuenta'}
@@ -129,7 +124,7 @@ export default function SignupPage() {
           </form>
         </CardContent>
         <CardFooter className="justify-center text-[13.5px] text-muted-foreground">
-          ¿Ya tienes cuenta?&nbsp;<a href="/login" className="font-bold text-secondary hover:underline">Inicia sesión</a>
+          ¿Ya tienes cuenta?&nbsp;<a href="/login" className="inline-flex min-h-11 items-center font-bold text-secondary hover:underline">Inicia sesión</a>
         </CardFooter>
       </Card>
     </div>

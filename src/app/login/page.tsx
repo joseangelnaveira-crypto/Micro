@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
+import AuthBrand from '@/components/AuthBrand';
 import { Label } from '@/components/ui/label';
 import {
   Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Beaker } from 'lucide-react';
 
 // Desactivado temporalmente a petición del usuario -- no se borra el flujo, solo se oculta.
 const GOOGLE_LOGIN_ENABLED = false;
@@ -51,12 +52,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-5 py-12">
-      <div className="mb-7 flex items-center gap-2.5">
-        <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-          <Beaker className="size-5" />
-        </div>
-        <h1 className="text-xl font-extrabold tracking-tight">Academia de Microbiología</h1>
-      </div>
+      <AuthBrand />
 
       <Card className="w-full max-w-[420px]">
         <CardHeader>
@@ -85,16 +81,16 @@ export default function LoginPage() {
           <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+              <Input id="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" required value={email} onChange={e => setEmail(e.target.value)} />
             </div>
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Contraseña</Label>
-                <a href="/forgot-password" className="text-[12.5px] font-semibold text-secondary hover:underline">
+                <a href="/forgot-password" className="-my-3 inline-flex min-h-11 items-center text-[13px] font-semibold text-secondary hover:underline">
                   ¿La has olvidado?
                 </a>
               </div>
-              <Input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} />
+              <PasswordInput id="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} />
             </div>
             <Button type="submit" block disabled={loading !== null}>
               {loading === 'email' ? 'Entrando…' : 'Entrar'}
@@ -102,7 +98,7 @@ export default function LoginPage() {
           </form>
         </CardContent>
         <CardFooter className="justify-center text-[13.5px] text-muted-foreground">
-          ¿No tienes cuenta?&nbsp;<a href="/signup" className="font-bold text-secondary hover:underline">Regístrate</a>
+          ¿No tienes cuenta?&nbsp;<a href="/signup" className="inline-flex min-h-11 items-center font-bold text-secondary hover:underline">Regístrate</a>
         </CardFooter>
       </Card>
     </div>

@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
+import AuthBrand from '@/components/AuthBrand';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Check } from 'lucide-react';
@@ -42,9 +43,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-5 py-12">
-      <div className="mb-7 flex items-center gap-2.5">
-        <h1 className="font-display text-xl italic tracking-normal">Academia de Microbiología</h1>
-      </div>
+      <AuthBrand />
 
       <Card className="w-full max-w-[420px]">
         {done ? (
@@ -84,11 +83,11 @@ export default function ResetPasswordPage() {
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="password">Contraseña nueva</Label>
-                  <Input id="password" type="password" autoFocus required minLength={8} value={password} onChange={e => setPassword(e.target.value)} />
+                  <PasswordInput id="password" autoComplete="new-password" autoFocus required minLength={8} value={password} onChange={e => setPassword(e.target.value)} />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="confirm">Repetir contraseña</Label>
-                  <Input id="confirm" type="password" required minLength={8} value={confirm} onChange={e => setConfirm(e.target.value)} />
+                  <PasswordInput id="confirm" autoComplete="new-password" required minLength={8} value={confirm} onChange={e => setConfirm(e.target.value)} />
                 </div>
                 <Button type="submit" block disabled={loading || hasSession === null}>
                   {loading ? 'Guardando…' : 'Guardar contraseña'}
