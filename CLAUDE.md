@@ -193,7 +193,7 @@ CHGUV 2025, OPE Madrid 2024 (plantilla PROVISIONAL, no hay definitiva) y los mis
 
 - Criterio: solo exámenes ≥2016, solo plantilla DEFINITIVA (salvo Madrid), anuladas fuera, sin
   legislación/estadística/gestión, sin preguntas dudosas o ambiguas (cada una se revisó a mano
-  contrastando la clave oficial). Sin explicaciones (el campo va vacío a propósito).
+  contrastando la clave oficial). Las explicaciones se añadieron después (ver «Explicaciones OPE»).
 - Casos clínicos: el texto guarda `enunciado del caso\n\npregunta`; `src/components/QuestionText.tsx`
   muestra el caso en un bloque aparte. En los `.txt` de importación se escribe con ` ¶ ` y
   `parseQuestionsText` lo convierte.
@@ -214,6 +214,17 @@ CHGUV 2025, OPE Madrid 2024 (plantilla PROVISIONAL, no hay definitiva) y los mis
   tildes pero no es fiable en maquetación, así que se transcribe mirando la imagen). Pendientes de transcribir:
   Aragón feb-2022 y mar-2018 (ya descargados/OCR en scratchpad; claves y anuladas conocidas: 2022 anuladas
   7, 46, 67; 2018 anuladas 13, 27, 33, 88, 103).
+
+## Explicaciones OPE con página del Murray (COMPLETADO, nov-2026)
+
+Las 1260 preguntas OPE tienen `explanation`; 231 llevan además `source_page` (página del Murray 9.ª ed.,
+mostrada tras responder como «Murray, Microbiología Médica 9.ª ed. · pág. N»). La página solo se guarda si
+una cita literal de ese texto existe en esa página del libro (OCR de las 1098 páginas, verificación ≥80 %
+de palabras en orden); si el libro no lo recoge, la explicación va sin página. Datos en
+`scripts/ope/explicaciones.jsonl` (`{id,page,expl}`); se suben con
+`node --env-file=.env.local scripts/ope/apply-explanations.mjs scripts/ope/explicaciones.jsonl`.
+Preguntas con clave dudosa (p. ej. Listeria 3c4ae2b2, neutropenia 49d84900) lo indican en su explicación.
+Pendiente: página para las preguntas del Murray (tienen explicación, no página).
 
 ## Pantallas de acceso y accesibilidad (COMPLETADO)
 
