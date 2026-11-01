@@ -877,7 +877,7 @@ export default function DashboardApp({
                 <span className="text-foreground">{q.explanation || 'Sin explicación disponible para esta pregunta.'}</span>
                 {(q.source_page || q.source_url) && (
                   <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/60 pt-2.5 text-[12.5px] text-muted-foreground">
-                    {q.source_page && <span>Página {q.source_page} · {q.source}</span>}
+                    {q.source_page && <span>Murray, Microbiología Médica 9.ª ed. · pág. {q.source_page}</span>}
                     {q.source_url && (
                       <a href={q.source_url} target="_blank" rel="noopener noreferrer" className="font-semibold text-secondary hover:underline">
                         Leer más ↗
