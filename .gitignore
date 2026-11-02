@@ -7,3 +7,7 @@ next-env.d.ts
 .DS_Store
 .claude/settings.local.json
 /Archivos/
+
+# Playwright
+test-results/
+playwright-report/
