@@ -26,5 +26,15 @@ for (const [name, size] of [['movil', { width: 390, height: 844 }], ['escritorio
     await page.getByText(/Respuesta (correcta|incorrecta)/).waitFor();
     await page.waitForTimeout(800);
     await page.screenshot({ path: `e2e-capturas/${name}-examen-respondida.png`, fullPage: true });
+    await page.keyboard.press('Enter');
+    for (let i = 1; i < 3; i++) {
+      await page.getByText(`PREGUNTA ${i + 1} / 3`).waitFor();
+      await page.keyboard.press('a');
+      await page.getByText(/Respuesta (correcta|incorrecta)/).waitFor();
+      await page.keyboard.press('Enter');
+    }
+    await page.getByText('Revisión del examen').waitFor({ timeout: 60_000 });
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `e2e-capturas/${name}-resultados.png`, fullPage: true });
   });
 }

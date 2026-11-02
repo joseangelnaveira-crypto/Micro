@@ -25,6 +25,7 @@ import CommandPalette, { type PaletteAction } from '@/components/CommandPalette'
 import Confetti from '@/components/Confetti';
 import QuestionText from '@/components/QuestionText';
 import QuestionNote from '@/components/QuestionNote';
+import ExamReview from './ExamReview';
 import { formatDuration, formatDate, examComposition, StatBlock, CompositionTags, TrendChart } from './dashboard-parts';
 
 import { hasPushSubscription } from './push-actions';
@@ -1002,38 +1003,11 @@ export default function DashboardApp({
           </CardContent>
         </Card>
 
-        {failed.length > 0 ? (
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="font-display mb-4 text-[19px] italic">Repaso de preguntas falladas</h2>
-              {failed.map(r => {
-                const opts: Record<string, string> = {
-                  A: r.question.option_a, B: r.question.option_b, C: r.question.option_c, D: r.question.option_d,
-                };
-                return (
-                  <div key={r.question.id} className="border-t border-border/60 py-[15px] first:border-t-0 first:pt-0">
-                    <p className="mb-2 flex items-start gap-1.5 text-[15px]">
-                      <span className="whitespace-pre-line">{r.question.question}</span>
-                      {flagged.has(r.question.id) && <Flag className="mt-1 size-3.5 flex-none fill-warning text-warning" />}
-                    </p>
-                    <div className="my-[3px] text-[13.5px] text-destructive">
-                      Tu respuesta: {r.selected ? `${r.selected}) ${opts[r.selected]}` : '(en blanco)'}
-                    </div>
-                    <div className="my-[3px] text-[13.5px] text-success">Correcta: {r.question.correct}) {opts[r.question.correct]}</div>
-                    <div className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">{r.question.explanation || 'Sin explicación disponible.'}</div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="font-display mb-1.5 text-[19px] italic">Examen perfecto</h2>
-              <p className="text-[13.5px] text-muted-foreground">Has acertado todas las preguntas de este examen.</p>
-            </CardContent>
-          </Card>
-        )}
+        <ExamReview
+          items={examQuestions.map(q => results.find(r => r.question.id === q.id) ?? { question: q, selected: null, isCorrect: false })}
+          flaggedIds={flagged}
+          canTakeNotes={isOnline}
+        />
       </div>
     );
   }

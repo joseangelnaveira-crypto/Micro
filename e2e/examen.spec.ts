@@ -31,5 +31,6 @@ test('generar y terminar un examen', async ({ page }) => {
   }
 
   await expect(page.getByText('Nota de corte')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText('Revisión del examen')).toBeVisible();
   expect(errors, `Errores de página: ${errors.join(' | ')}`).toEqual([]);
 });

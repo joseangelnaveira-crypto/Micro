@@ -270,6 +270,8 @@ Pendiente: página para las preguntas del Murray (tienen explicación, no págin
   inteligente; «Generar examen» con una acción principal, tres modos secundarios y «Ajustes del examen» plegado; en la pantalla
   de examen la cabecera no se corta en móvil, «Siguiente» queda fijo abajo y los atajos de teclado solo se ven en escritorio.
   `npm run e2e -- capturas` genera capturas móvil/escritorio en `e2e-capturas/` (ignoradas por git) para revisar el diseño.
+- **Revisión del examen** (`ExamReview.tsx`, pantalla de resultados): filtros Falladas / En blanco / Marcadas / Todas con contadores,
+  opciones coloreadas (correcta / tu respuesta), explicación, fuente y nota personal. Sustituye al antiguo «Repaso de falladas».
 - Sin hacer: seguir dividiendo `DashboardApp.tsx` (estado/flujo del
   examen); crear usuarios desde admin. Las dos preguntas con clave dudosa (49d84900, 3c4ae2b2) se borraron del banco (6096 preguntas).
 
