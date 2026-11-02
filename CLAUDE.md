@@ -223,7 +223,7 @@ una cita literal de ese texto existe en esa página del libro (OCR de las 1098 p
 de palabras en orden); si el libro no lo recoge, la explicación va sin página. Datos en
 `scripts/ope/explicaciones.jsonl` (`{id,page,expl}`); se suben con
 `node --env-file=.env.local scripts/ope/apply-explanations.mjs scripts/ope/explicaciones.jsonl`.
-Preguntas con clave dudosa (p. ej. Listeria 3c4ae2b2, neutropenia 49d84900) lo indican en su explicación.
+Las preguntas con clave discutible lo indican en su explicación.
 Pendiente: página para las preguntas del Murray (tienen explicación, no página).
 
 ## Pantallas de acceso y accesibilidad (COMPLETADO)
@@ -261,7 +261,7 @@ Pendiente: página para las preguntas del Murray (tienen explicación, no págin
 - `npm run check` = tsc + tests + build (pasarlo antes de subir; un hook mal colocado ya rompió «Generar examen» una vez:
   los hooks van ANTES de los `return` anticipados de DashboardApp).
 - Sin hacer: página del Murray para las preguntas del Murray; seguir dividiendo `DashboardApp.tsx` (estado/flujo del
-  examen); crear usuarios desde admin. Claves dudosas pendientes de decidir (borrar o corregir): 49d84900, 3c4ae2b2.
+  examen); crear usuarios desde admin. Las dos preguntas con clave dudosa (49d84900, 3c4ae2b2) se borraron del banco (6096 preguntas).
 
 ## Cómo se prueba
 
