@@ -20,7 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Sun, Moon, WifiOff, Trash2, Bell, BellOff, Check, X, Flag, Flame, FlaskConical, History as HistoryIcon, BarChart3, Zap } from 'lucide-react';
+import { Sun, Moon, WifiOff, Trash2, Bell, BellOff, Check, X, Flag, Flame, FlaskConical, History as HistoryIcon, BarChart3, Zap, TriangleAlert } from 'lucide-react';
 import CommandPalette, { type PaletteAction } from '@/components/CommandPalette';
 import Confetti from '@/components/Confetti';
 import QuestionText from '@/components/QuestionText';
@@ -458,7 +458,7 @@ export default function DashboardApp({
   }
 
   async function handleDueReview() {
-    if (!isOnline) { showAlert('«Para hoy» necesita conexión.'); return; }
+    if (!isOnline) { showAlert('El repaso espaciado necesita conexión.'); return; }
     setStarting(true);
     const questions = await startDueReview(numQuestions);
     setStarting(false);
@@ -804,9 +804,9 @@ export default function DashboardApp({
               })}
             </div>
             {composition.length > 1 && <CompositionTags composition={composition} className="mb-3.5" />}
-            <div className="mb-2.5 flex items-center justify-between gap-2">
-              <Badge variant="secondary">{q.source} · {q.topic}</Badge>
-              <div className="flex items-center gap-2">
+            <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+              <Badge variant="secondary" className="max-w-full whitespace-normal">{q.source} · {q.topic}</Badge>
+              <div className="ml-auto flex items-center gap-1.5">
                 <Button
                   type="button"
                   variant="ghost"
@@ -814,7 +814,8 @@ export default function DashboardApp({
                   className="text-muted-foreground"
                   onClick={() => { setReportingQuestionId(q.id); setReportReason(''); }}
                 >
-                  Reportar error
+                  <TriangleAlert className="size-4 sm:hidden" aria-hidden="true" />
+                  <span className="sr-only sm:not-sr-only">Reportar error</span>
                 </Button>
                 <Button
                   type="button"
@@ -835,7 +836,7 @@ export default function DashboardApp({
                 className="mb-4 max-h-[280px] w-full rounded-2xl border border-border object-contain bg-background"
               />
             )}
-            <QuestionText text={q.question} className="mb-5 text-xl font-bold leading-relaxed tracking-tight" caseClassName="mb-4" />
+            <QuestionText text={q.question} className="mb-5 text-[19px] font-bold leading-relaxed tracking-tight sm:text-xl" caseClassName="mb-4" />
 
             <div className="flex flex-col gap-2">
               {options.map(([letter, text]) => {
@@ -911,15 +912,15 @@ export default function DashboardApp({
             )}
             {checked && <QuestionNote questionId={q.id} disabled={!isOnline} />}
 
-            <p className="mt-4 text-center text-[11.5px] text-muted-foreground">
+            <p className="mt-4 hidden text-center text-[11.5px] text-muted-foreground md:block">
               Atajos: A/B/C/D o 1-4 para responder · Enter para siguiente
             </p>
-            <div className="mt-4 flex items-center justify-between gap-2.5">
+            <div className="sticky bottom-2 z-10 -mx-2 mt-4 flex items-center justify-between gap-2.5 rounded-2xl bg-card/90 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-card/75">
               <Button type="button" variant="ghost" size="sm" onClick={requestExit} className="text-muted-foreground">
                 Salir
               </Button>
               {checked && (
-                <Button type="button" size="auto" disabled={finishing} onClick={nextQuestion}>
+                <Button type="button" size="auto" className="flex-1 sm:flex-none" disabled={finishing} onClick={nextQuestion}>
                   {finishing ? 'Guardando…' : currentIndex + 1 >= total ? 'Ver resultados' : 'Siguiente pregunta →'}
                 </Button>
               )}
@@ -1059,6 +1060,23 @@ export default function DashboardApp({
         onRun: handleStartExam,
       };
     }
+    const plan = dailyPlan();
+    if (plan) {
+      return {
+        title: `Plan de hoy: ${plan.newPerDay} preguntas nuevas${dueCount > 0 ? ` y ${dueCount} de repaso` : ''}`,
+        subtitle: `Faltan ${plan.days} días para tu convocatoria: a este ritmo llegas con todo visto.`,
+        cta: 'Empezar plan',
+        onRun: handleDailyPlan,
+      };
+    }
+    if (dueCount > 0) {
+      return {
+        title: `${dueCount} ${dueCount === 1 ? 'pregunta toca' : 'preguntas tocan'} repasarse hoy`,
+        subtitle: 'La repetición espaciada las trae justo cuando estás a punto de olvidarlas.',
+        cta: 'Repasar',
+        onRun: handleDueReview,
+      };
+    }
     if (smartAvailable) {
       return {
         title: 'Repaso de lo que más te falla',
@@ -1154,7 +1172,7 @@ export default function DashboardApp({
             <span className="colony-blob" style={{ bottom: '-40px', right: '60px', width: '110px', height: '110px', background: 'var(--amber)' }} />
             <CardContent className="relative flex flex-wrap items-center justify-between gap-3 pt-6">
               <div className="min-w-0 flex-1">
-                <p className="font-display mb-0.5 text-[11px] uppercase tracking-[1.5px] text-secondary">Para hoy</p>
+                <p className="font-display mb-0.5 text-[11px] uppercase tracking-[1.5px] text-secondary">Hoy</p>
                 <p className="font-display text-[20px] italic leading-snug text-foreground">{sug.title}</p>
                 <p className="text-[13px] leading-relaxed text-muted-foreground">{sug.subtitle}</p>
               </div>
@@ -1353,6 +1371,16 @@ export default function DashboardApp({
                 onChange={e => setNumQuestions(Math.max(1, parseInt(e.target.value) || 1))}
               />
             </div>
+          </div>
+
+          <details className="group mt-4 rounded-2xl border border-border bg-background/50 px-4 py-3">
+            <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[13px] font-semibold marker:content-none">
+              <span>Ajustes del examen</span>
+              <span className="text-[12px] font-normal text-muted-foreground group-open:hidden">
+                Corte {passMark}% · {timeLimitMinutes > 0 ? `${timeLimitMinutes} min` : 'sin límite'} · {PENALTY_OPTIONS.find(o => o.value === penalty)?.label.toLowerCase() ?? 'sin penalización'}
+              </span>
+            </summary>
+            <div className="mt-3 grid gap-x-4 gap-y-4 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
               <Label>Nota de corte (%)</Label>
               <Input
@@ -1384,7 +1412,8 @@ export default function DashboardApp({
                 </SelectContent>
               </Select>
             </div>
-          </div>
+            </div>
+          </details>
 
           {meta.total === 0 ? (
             <p className="mt-4 text-[13.5px] leading-relaxed text-muted-foreground">
@@ -1399,36 +1428,37 @@ export default function DashboardApp({
             </p>
           )}
 
-          <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
-            <Button type="button" size="lg" className="w-full sm:flex-1" disabled={starting || meta.total === 0} onClick={handleStartExam}>
+          <div className="mt-5">
+            <Button type="button" size="lg" className="w-full" disabled={starting || meta.total === 0} onClick={handleStartExam}>
               {starting ? 'Generando…' : 'Empezar examen'}
             </Button>
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
             <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              className="w-full sm:flex-1"
-              disabled={starting || !smartAvailable}
-              onClick={handleSmartReview}
+              type="button" variant="outline" size="sm"
+              disabled={starting || !smartAvailable} onClick={handleSmartReview}
+              title="Prioriza las preguntas con más fallos"
             >
               Repaso inteligente
             </Button>
-          </div>
-          <div className="mt-2.5 flex flex-col gap-2.5 sm:flex-row">
-            <Button type="button" variant="outline" size="lg" className="w-full sm:flex-1" disabled={starting || sourceFilter === 'Todas'} onClick={handleOfficialExam}>
+            <Button
+              type="button" variant="outline" size="sm"
+              disabled={starting || sourceFilter === 'Todas'} onClick={handleOfficialExam}
+              title="Elige un examen en «Fuente»: se carga entero y en su orden original"
+            >
               Simulacro oficial
             </Button>
-            <Button type="button" variant="outline" size="lg" className="w-full sm:flex-1" disabled={starting || dueCount === 0} onClick={handleDueReview}>
-              Para hoy{dueCount > 0 ? ` (${dueCount})` : ''}
+            <Button
+              type="button" variant="outline" size="sm"
+              disabled={starting || dueCount === 0} onClick={handleDueReview}
+              title="Preguntas que la repetición espaciada te toca ver hoy"
+            >
+              Repaso espaciado{dueCount > 0 ? ` (${dueCount})` : ''}
             </Button>
           </div>
           <p className="mt-2.5 text-[12.5px] text-muted-foreground">
-            El simulacro oficial carga entero el examen elegido en «Fuente», en su orden original, con la nota de corte, el tiempo y la penalización de arriba.
-            «Para hoy» repasa las preguntas que la repetición espaciada te toca ver hoy.
-          </p>
-          <p className="mt-2.5 text-[12.5px] text-muted-foreground">
-            El repaso inteligente prioriza las preguntas con más fallos
-            {!smartAvailable && ' — disponible en cuanto hayas respondido alguna pregunta'}.
+            {sourceFilter === 'Todas' ? 'Para el simulacro oficial elige antes un examen en «Fuente».' : 'El simulacro oficial usa la nota de corte, el tiempo y la penalización de arriba.'}
+            {!smartAvailable && ' El repaso inteligente se activa al responder tus primeras preguntas.'}
           </p>
         </CardContent>
       </Card>

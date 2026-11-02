@@ -266,6 +266,10 @@ Pendiente: página para las preguntas del Murray (tienen explicación, no págin
 - **Páginas del Murray en las preguntas del Murray**: las explicaciones de ese lote no son texto del libro, así que no se
   pueden verificar con cita literal; solo se asignó página a las 122 donde los términos distintivos de la explicación
   aparecen casi todos en una única página (`scripts/ope/apply-pages.mjs`, `paginas-murray.jsonl`). El resto sin página.
+- **Revisión visual (nov-2026)**: tarjeta «Hoy» con prioridad examen a medias > racha > plan diario > repaso espaciado > repaso
+  inteligente; «Generar examen» con una acción principal, tres modos secundarios y «Ajustes del examen» plegado; en la pantalla
+  de examen la cabecera no se corta en móvil, «Siguiente» queda fijo abajo y los atajos de teclado solo se ven en escritorio.
+  `npm run e2e -- capturas` genera capturas móvil/escritorio en `e2e-capturas/` (ignoradas por git) para revisar el diseño.
 - Sin hacer: seguir dividiendo `DashboardApp.tsx` (estado/flujo del
   examen); crear usuarios desde admin. Las dos preguntas con clave dudosa (49d84900, 3c4ae2b2) se borraron del banco (6096 preguntas).
 
