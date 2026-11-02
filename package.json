@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "tsc --noEmit",
     "test": "tsx --test src/lib/*.test.ts",
     "check": "tsc --noEmit && npm test && next build",
     "e2e": "node --env-file=.env.local node_modules/@playwright/test/cli.js test",

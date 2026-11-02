@@ -393,14 +393,20 @@ export async function getStudyStats(): Promise<StudyStats> {
   // Ritmo: preguntas vistas por primera vez en los últimos 14 días, según los exámenes terminados.
   const seenQuestions = statRows.filter(r => r.seen > 0).length;
   const { data: profile } = await supabase.from('profiles').select('exam_date').eq('id', user.id).maybeSingle();
-  const { data: attempts } = await supabase
-    .from('exam_attempts')
-    .select('question_ids, created_at')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: true })
-    .limit(1000);
+  const attempts: { question_ids: string[]; created_at: string }[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data } = await supabase
+      .from('exam_attempts')
+      .select('question_ids, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (!data || data.length === 0) break;
+    attempts.push(...(data as { question_ids: string[]; created_at: string }[]));
+    if (data.length < PAGE) break;
+  }
   const firstSeen = new Map<string, number>();
-  (attempts ?? []).forEach(a => {
+  attempts.forEach(a => {
     const when = new Date(a.created_at).getTime();
     (a.question_ids as string[]).forEach(id => { if (!firstSeen.has(id)) firstSeen.set(id, when); });
   });

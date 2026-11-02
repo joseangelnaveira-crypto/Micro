@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Registra el service worker y, cuando hay una versión nueva esperando, muestra un aviso
@@ -8,12 +8,14 @@ import { useEffect, useState } from 'react';
  */
 export default function RegisterServiceWorker() {
   const [waiting, setWaiting] = useState<ServiceWorker | null>(null);
+  const userAskedUpdate = useRef(false);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
     let reloading = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (reloading) return;
+      // En la primera instalación el SW también "toma el control": solo recargamos si el usuario pidió actualizar.
+      if (reloading || !userAskedUpdate.current) return;
       reloading = true;
       window.location.reload();
     });
@@ -35,7 +37,7 @@ export default function RegisterServiceWorker() {
       <button
         type="button"
         className="rounded-xl bg-primary px-3.5 py-2 text-[13px] font-bold text-primary-foreground"
-        onClick={() => waiting.postMessage({ type: 'SKIP_WAITING' })}
+        onClick={() => { userAskedUpdate.current = true; waiting.postMessage({ type: 'SKIP_WAITING' }); }}
       >
         Actualizar
       </button>
