@@ -300,10 +300,33 @@ export async function getHistory(limit = 50): Promise<ExamAttempt[]> {
   return (data ?? []) as ExamAttempt[];
 }
 
+export type TopicMastery = {
+  topic: string;
+  /** % de aciertos sobre todas las respuestas en este tema. */
+  accuracy: number;
+  /** Respuestas dadas en total (con repeticiones). */
+  answers: number;
+  /** Preguntas distintas del tema que ya has visto. */
+  seenQuestions: number;
+  /** Preguntas del tema en el banco. */
+  totalQuestions: number;
+};
+
+export type Coverage = {
+  seenQuestions: number;
+  totalQuestions: number;
+  /** Preguntas nuevas por día en los últimos 14 días (media). */
+  newPerDay: number;
+  daysLeft: number | null;
+  /** Preguntas distintas vistas el día de la convocatoria si mantienes el ritmo. */
+  projected: number | null;
+};
+
 export type StudyStats = {
   overallAccuracy: number | null;
   totalAnswered: number;
-  topicRows: { topic: string; pct: number; seen: number }[];
+  topicRows: TopicMastery[];
+  coverage: Coverage | null;
 };
 
 export async function getStudyStats(): Promise<StudyStats> {
@@ -328,7 +351,7 @@ export async function getStudyStats(): Promise<StudyStats> {
   const totalCorrect = statRows.reduce((s, r) => s + r.correct, 0);
   const overallAccuracy = totalAnswered ? Math.round((totalCorrect / totalAnswered) * 100) : null;
 
-  if (statRows.length === 0) return { overallAccuracy, totalAnswered, topicRows: [] };
+  if (statRows.length === 0) return { overallAccuracy, totalAnswered, topicRows: [], coverage: null };
 
   const qIds = statRows.map(r => r.question_id);
   const topicById = new Map<string, string>();
@@ -338,22 +361,67 @@ export async function getStudyStats(): Promise<StudyStats> {
     (qRows ?? []).forEach(q => topicById.set(q.id, q.topic));
   }
 
-  const byTopic = new Map<string, { seen: number; correct: number }>();
+  // Preguntas del banco por tema (la función agrupa en la BD: sin el límite de 1000 filas).
+  const totalByTopic = new Map<string, number>();
+  const { data: breakdown } = await supabase.rpc('question_bank_breakdown');
+  (breakdown ?? []).forEach((r: { topic: string; cnt: number }) => {
+    totalByTopic.set(r.topic, (totalByTopic.get(r.topic) ?? 0) + Number(r.cnt));
+  });
+  const totalQuestions = [...totalByTopic.values()].reduce((s, n) => s + n, 0);
+
+  const byTopic = new Map<string, { answers: number; correct: number; distinct: number }>();
   statRows.forEach(r => {
     const topic = topicById.get(r.question_id) ?? 'General / otros';
-    const entry = byTopic.get(topic) ?? { seen: 0, correct: 0 };
-    entry.seen += r.seen;
+    const entry = byTopic.get(topic) ?? { answers: 0, correct: 0, distinct: 0 };
+    entry.answers += r.seen;
     entry.correct += r.correct;
+    if (r.seen > 0) entry.distinct += 1;
     byTopic.set(topic, entry);
   });
 
-  const topicRows = [...byTopic.entries()]
-    .map(([topic, v]) => ({ topic, pct: v.seen ? Math.round((v.correct / v.seen) * 100) : 0, seen: v.seen }))
-    .filter(r => r.seen >= 3)
-    .sort((a, b) => a.pct - b.pct)
-    .slice(0, 5);
+  const topicRows: TopicMastery[] = [...byTopic.entries()]
+    .filter(([, v]) => v.answers > 0)
+    .map(([topic, v]) => ({
+      topic,
+      accuracy: Math.round((v.correct / v.answers) * 100),
+      answers: v.answers,
+      seenQuestions: v.distinct,
+      totalQuestions: totalByTopic.get(topic) ?? v.distinct,
+    }))
+    .sort((a, b) => a.accuracy - b.accuracy);
 
-  return { overallAccuracy, totalAnswered, topicRows };
+  // Ritmo: preguntas vistas por primera vez en los últimos 14 días, según los exámenes terminados.
+  const seenQuestions = statRows.filter(r => r.seen > 0).length;
+  const { data: profile } = await supabase.from('profiles').select('exam_date').eq('id', user.id).maybeSingle();
+  const { data: attempts } = await supabase
+    .from('exam_attempts')
+    .select('question_ids, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })
+    .limit(1000);
+  const firstSeen = new Map<string, number>();
+  (attempts ?? []).forEach(a => {
+    const when = new Date(a.created_at).getTime();
+    (a.question_ids as string[]).forEach(id => { if (!firstSeen.has(id)) firstSeen.set(id, when); });
+  });
+  const windowMs = 14 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const newInWindow = [...firstSeen.values()].filter(ts => now - ts <= windowMs).length;
+  const newPerDay = Math.round((newInWindow / 14) * 10) / 10;
+
+  let daysLeft: number | null = null;
+  let projected: number | null = null;
+  if (profile?.exam_date) {
+    const target = new Date(profile.exam_date + 'T00:00:00');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    daysLeft = Math.round((target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+    if (daysLeft > 0) projected = Math.min(totalQuestions, Math.round(seenQuestions + newPerDay * daysLeft));
+  }
+
+  return {
+    overallAccuracy, totalAnswered, topicRows,
+    coverage: { seenQuestions, totalQuestions, newPerDay, daysLeft, projected },
+  };
 }
 
 /**

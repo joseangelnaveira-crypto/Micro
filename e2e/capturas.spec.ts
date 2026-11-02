@@ -17,6 +17,12 @@ for (const [name, size] of [['movil', { width: 390, height: 844 }], ['escritorio
     await page.getByText('Generar examen').first().waitFor({ timeout: 60_000 });
     await page.waitForTimeout(2500);
     await page.screenshot({ path: `e2e-capturas/${name}-inicio.png`, fullPage: true });
+    const stats = page.getByText('Estadísticas de estudio').first();
+    if (await stats.count()) {
+      await stats.click();
+      await page.waitForTimeout(1500);
+      await page.locator('#section-stats').screenshot({ path: `e2e-capturas/${name}-estadisticas.png` });
+    }
 
     await page.locator('input[type="number"]').first().fill('3');
     await page.getByRole('button', { name: 'Empezar examen' }).click();

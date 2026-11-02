@@ -26,6 +26,7 @@ import Confetti from '@/components/Confetti';
 import QuestionText from '@/components/QuestionText';
 import QuestionNote from '@/components/QuestionNote';
 import ExamReview from './ExamReview';
+import StudyInsights from './StudyInsights';
 import { formatDuration, formatDate, examComposition, StatBlock, CompositionTags, TrendChart } from './dashboard-parts';
 
 import { hasPushSubscription } from './push-actions';
@@ -1478,22 +1479,7 @@ export default function DashboardApp({
                 );
               })()}
               <TrendChart history={history} />
-              {studyStats.topicRows.length > 0 && (
-                <>
-                  <p className="mb-1.5 text-[13.5px] text-muted-foreground"><strong>Temas con mayor tasa de error:</strong></p>
-                  {studyStats.topicRows.map(r => (
-                    <div key={r.topic} className="flex items-center justify-between gap-2 py-[3px] text-[13px] text-muted-foreground">
-                      <span>{r.topic}</span>
-                      <span className="flex items-center gap-2">
-                        <b className="text-foreground">{r.pct}%</b>
-                        <Button type="button" variant="outline" size="sm" disabled={starting} onClick={() => handleTopicPractice(r.topic)}>
-                          Practicar
-                        </Button>
-                      </span>
-                    </div>
-                  ))}
-                </>
-              )}
+              <StudyInsights stats={studyStats} busy={starting} onPractice={handleTopicPractice} />
             </details>
           </CardContent>
         </Card>

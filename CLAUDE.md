@@ -272,6 +272,9 @@ Pendiente: página para las preguntas del Murray (tienen explicación, no págin
   `npm run e2e -- capturas` genera capturas móvil/escritorio en `e2e-capturas/` (ignoradas por git) para revisar el diseño.
 - **Revisión del examen** (`ExamReview.tsx`, pantalla de resultados): filtros Falladas / En blanco / Marcadas / Todas con contadores,
   opciones coloreadas (correcta / tu respuesta), explicación, fuente y nota personal. Sustituye al antiguo «Repaso de falladas».
+- **Estadísticas por tema** (`StudyInsights.tsx`, datos de `getStudyStats`): barra de dominio por tema (verde ≥75 %, amarillo ≥50 %,
+  rojo <50 %), vistas/total y botón «Practicar»; «Banco visto» y previsión de preguntas vistas el día de la convocatoria según el
+  ritmo de los últimos 14 días (primera aparición de cada pregunta en `exam_attempts`).
 - Sin hacer: seguir dividiendo `DashboardApp.tsx` (estado/flujo del
   examen); crear usuarios desde admin. Las dos preguntas con clave dudosa (49d84900, 3c4ae2b2) se borraron del banco (6096 preguntas).
 
