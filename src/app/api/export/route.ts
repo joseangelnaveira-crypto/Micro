@@ -47,6 +47,8 @@ export async function GET(request: Request) {
         exportedAt: new Date().toISOString(),
         attempts: await fetchAll(supabase, 'exam_attempts', { column: 'user_id', value: user.id }, 'created_at'),
         questionStats: await fetchAll(supabase, 'question_stats', { column: 'user_id', value: user.id }, 'question_id'),
+        // Notas personales (si la migración 11 no está aplicada, la lista sale vacía).
+        notes: await fetchAll(supabase, 'question_notes', { column: 'user_id', value: user.id }, 'question_id').catch(() => []),
       };
       filename = `mis-resultados-${stamp}.json`;
     } else {

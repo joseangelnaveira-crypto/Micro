@@ -279,6 +279,7 @@ Pendiente: página para las preguntas del Murray (tienen explicación, no págin
   en DashboardApp; puedes saltar, volver y cambiar respuestas (paleta numerada, Anterior/Siguiente, ←/→), pulsar otra vez la letra
   deja la pregunta en blanco, y al terminar se calcula todo (`finish(override)`). El temporizador llama a `finishRef.current`
   (antes cerraba sobre estado viejo y, al acabar el tiempo, guardaba el examen vacío). Con límite de tiempo hay indicador de ritmo.
+- **Revisar un examen del historial** (botón «Revisar», pantalla `review` con `ExamReview`) y `/api/export?what=results` incluye las notas.
 - Sin hacer: seguir dividiendo `DashboardApp.tsx` (estado/flujo del
   examen); crear usuarios desde admin. Las dos preguntas con clave dudosa (49d84900, 3c4ae2b2) se borraron del banco (6096 preguntas).
 

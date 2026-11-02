@@ -6,9 +6,10 @@ const email = process.env.E2E_EMAIL;
 const password = process.env.E2E_PASSWORD;
 test.skip(!email || !password, 'Define E2E_EMAIL y E2E_PASSWORD en .env.local');
 
-for (const [name, size] of [['movil', { width: 390, height: 844 }], ['escritorio', { width: 1280, height: 900 }]] as const) {
+for (const [name, size, dark] of [['movil', { width: 390, height: 844 }, false], ['escritorio', { width: 1280, height: 900 }, false], ['oscuro', { width: 390, height: 844 }, true]] as const) {
   test(`capturas ${name}`, async ({ page }) => {
     await page.setViewportSize(size);
+    if (dark) await page.addInitScript(() => localStorage.setItem('academia_dark_mode', '1'));
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
     await page.getByLabel('Email').fill(email!);

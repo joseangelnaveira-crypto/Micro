@@ -25,14 +25,14 @@ import CommandPalette, { type PaletteAction } from '@/components/CommandPalette'
 import Confetti from '@/components/Confetti';
 import QuestionText from '@/components/QuestionText';
 import QuestionNote from '@/components/QuestionNote';
-import ExamReview from './ExamReview';
+import ExamReview, { type ReviewItem } from './ExamReview';
 import StudyInsights from './StudyInsights';
 import { formatDuration, formatDate, examComposition, StatBlock, CompositionTags, TrendChart } from './dashboard-parts';
 
 import { hasPushSubscription } from './push-actions';
 import { enableReminders, disableReminders } from '@/lib/push-client';
 
-type Screen = 'home' | 'exam' | 'results';
+type Screen = 'home' | 'exam' | 'results' | 'review';
 
 type Result = {
   question: Question;
@@ -478,6 +478,32 @@ export default function DashboardApp({
     setStarting(false);
     if (questions.length === 0) { showAlert('No tienes preguntas pendientes de repaso para hoy. Vuelve mañana o haz un examen.'); return; }
     handleStart(questions, false);
+  }
+
+  // Revisar un examen ya terminado (desde el historial): tus respuestas, la corrección y las explicaciones.
+  const [reviewAttempt, setReviewAttempt] = useState<{ attempt: ExamAttempt; items: ReviewItem[] } | null>(null);
+  const [loadingReview, setLoadingReview] = useState(false);
+
+  async function handleReviewAttempt(attempt: ExamAttempt) {
+    setLoadingReview(true);
+    const questions = isOnline
+      ? await startReviewExam(attempt.question_ids)
+      : await offlineStartReviewExam(attempt.question_ids);
+    setLoadingReview(false);
+    if (questions.length === 0) {
+      showAlert('No se han podido cargar las preguntas de este examen (puede que alguna se haya borrado del banco).');
+      return;
+    }
+    const byId = new Map(questions.map(q => [q.id, q]));
+    const items: ReviewItem[] = attempt.question_ids.flatMap((id, i) => {
+      const q = byId.get(id);
+      if (!q) return [];
+      const selected = attempt.answers[i] ?? null;
+      return [{ question: q, selected, isCorrect: selected !== null && selected === q.correct }];
+    });
+    setReviewAttempt({ attempt, items });
+    setScreen('review');
+    window.scrollTo({ top: 0 });
   }
 
   async function handleRepeat(attempt: ExamAttempt) {
@@ -1042,6 +1068,33 @@ export default function DashboardApp({
             </div>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  if (screen === 'review' && reviewAttempt) {
+    const a = reviewAttempt.attempt;
+    const passed = a.score >= a.pass_mark;
+    return (
+      <div className={container}>
+        {modalNode}
+        <Card className="mb-4">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+            <div>
+              <h2 className="font-display text-[19px] italic">Revisión de examen</h2>
+              <p className="font-mono text-[12px] text-muted-foreground">
+                {formatDate(a.created_at)} · {formatDuration(a.duration_ms)}
+              </p>
+              <p className={cn('text-[14px] font-bold', passed ? 'text-success' : 'text-destructive')}>
+                {a.correct}/{a.total} · {a.score}% {passed ? '· Apto' : '· No apto'}
+              </p>
+            </div>
+            <Button type="button" variant="ghost" size="auto" onClick={() => { setReviewAttempt(null); setScreen('home'); }}>
+              ← Volver al inicio
+            </Button>
+          </CardContent>
+        </Card>
+        <ExamReview items={reviewAttempt.items} flaggedIds={new Set(a.flagged_ids ?? [])} canTakeNotes={isOnline} />
       </div>
     );
   }
@@ -1713,6 +1766,9 @@ export default function DashboardApp({
                           )}
                         </div>
                         <div className="flex items-center gap-1.5">
+                          <Button type="button" variant="outline" size="auto" disabled={loadingReview} onClick={() => handleReviewAttempt(h)}>
+                            Revisar
+                          </Button>
                           <Button type="button" variant="secondary" size="auto" onClick={() => handleRepeat(h)}>
                             ↻ Repetir
                           </Button>

@@ -42,6 +42,13 @@ test('generar y terminar un examen', async ({ page }) => {
   await expect(page.getByText('Nota de corte')).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText('Revisión del examen')).toBeVisible();
   expect(errors, `Errores de página: ${errors.join(' | ')}`).toEqual([]);
+
+  // Desde el historial se puede volver a revisar ese examen.
+  await page.getByRole('button', { name: 'Volver al inicio' }).click();
+  await page.getByText('Historial de exámenes').click();
+  await page.getByRole('button', { name: 'Revisar' }).first().click();
+  await expect(page.getByText('Revisión de examen')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText('Revisión del examen')).toBeVisible();
 });
 
 test('examen con corrección al final: saltar, volver y terminar', async ({ page }) => {
