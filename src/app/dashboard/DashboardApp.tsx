@@ -57,6 +57,8 @@ type SavedProgress = {
   savedAt: string;
   timeLimitMinutes?: number;
   penalty?: number;
+  realMode?: boolean;
+  realAnswers?: Record<string, string>;
 };
 
 type Modal = {
@@ -137,6 +139,12 @@ export default function DashboardApp({
   const [penalty, setPenalty] = useState(0);
   const penaltyRef = useRef<number>(0);
   const [dueCount, setDueCount] = useState(0);
+  // Modo examen real: sin corrección inmediata; puedes ir y volver entre preguntas y cambiar respuestas.
+  // La corrección y las explicaciones llegan al terminar. El simulacro oficial lo usa siempre.
+  const [realMode, setRealMode] = useState(false);
+  const realModeRef = useRef(false);
+  const [realAnswers, setRealAnswers] = useState<Record<string, string>>({});
+  const finishRef = useRef<(override?: Result[]) => Promise<void>>(async () => {});
 
   const [modal, setModal] = useState<Modal | null>(null);
   function showConfirm(message: string, onConfirm: () => void, opts?: { confirmLabel?: string; danger?: boolean }) {
@@ -328,7 +336,7 @@ export default function DashboardApp({
       if (timeLimitRef.current > 0 && currentElapsed() >= timeLimitRef.current * 60 * 1000) {
         // Se acabó el tiempo -- terminamos el examen tal como esté.
         if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-        finish();
+        finishRef.current();
       }
     }, 1000);
   }
@@ -353,6 +361,8 @@ export default function DashboardApp({
       savedAt: new Date().toISOString(),
       timeLimitMinutes: timeLimitRef.current,
       penalty: penaltyRef.current,
+      realMode: realModeRef.current,
+      realAnswers,
       ...overrides,
     };
     try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(payload)); } catch { /* noop */ }
@@ -362,12 +372,14 @@ export default function DashboardApp({
     setSavedProgress(null);
   }
 
-  function handleStart(questions: Question[], affectsCycle = true) {
+  function handleStart(questions: Question[], affectsCycle = true, forceReal?: boolean) {
     if (questions.length === 0) return;
     clientUuidRef.current = crypto.randomUUID();
     affectsCycleRef.current = affectsCycle;
     timeLimitRef.current = timeLimitMinutes; // se congela para este examen
     penaltyRef.current = penalty;
+    realModeRef.current = forceReal ?? realMode;
+    setRealAnswers({});
     setExamQuestions(questions);
     setCurrentIndex(0);
     setSelected(null);
@@ -428,7 +440,7 @@ export default function DashboardApp({
     const questions = await startOfficialExam(sourceFilter);
     setStarting(false);
     if (questions.length === 0) { showAlert('Ese lote no tiene preguntas.'); return; }
-    handleStart(questions, false);
+    handleStart(questions, false, true);
   }
 
   /** Plan diario: reparte las preguntas aún sin ver entre los días que quedan (dejando ~15 % para repasar). */
@@ -493,6 +505,8 @@ export default function DashboardApp({
     affectsCycleRef.current = savedProgress.affectsCycle ?? true;
     timeLimitRef.current = savedProgress.timeLimitMinutes ?? 0;
     penaltyRef.current = savedProgress.penalty ?? 0;
+    realModeRef.current = savedProgress.realMode ?? false;
+    setRealAnswers(savedProgress.realAnswers ?? {});
     setExamQuestions(savedProgress.examQuestions);
     setCurrentIndex(savedProgress.currentIndex);
     setSelected(savedProgress.selected);
@@ -512,6 +526,14 @@ export default function DashboardApp({
   }
 
   function selectOption(letter: string) {
+    if (realModeRef.current) {
+      const qid = examQuestions[currentIndex].id;
+      const next = { ...realAnswers };
+      if (next[qid] === letter) delete next[qid]; else next[qid] = letter; // pulsar otra vez = dejar en blanco
+      setRealAnswers(next);
+      persistProgress({ realAnswers: next });
+      return;
+    }
     if (checked) return;
     setSelected(letter);
     setChecked(true);
@@ -528,6 +550,32 @@ export default function DashboardApp({
       persistProgress({ flaggedIds: [...next] });
       return next;
     });
+  }
+
+  function goTo(index: number) {
+    if (index < 0 || index >= examQuestions.length) return;
+    setCurrentIndex(index);
+    persistProgress({ currentIndex: index });
+  }
+
+  function buildRealResults(): Result[] {
+    return examQuestions.map(q => ({
+      question: q,
+      selected: realAnswers[q.id] ?? null,
+      isCorrect: realAnswers[q.id] === q.correct,
+    }));
+  }
+
+  function finishReal() {
+    const unanswered = examQuestions.filter(q => !realAnswers[q.id]).length;
+    const run = () => { const res = buildRealResults(); setResults(res); finish(res); };
+    if (unanswered > 0) {
+      showConfirm(
+        `Te quedan ${unanswered} ${unanswered === 1 ? 'pregunta' : 'preguntas'} sin contestar. ¿Terminar el examen igualmente?`,
+        run,
+        { confirmLabel: 'Terminar' }
+      );
+    } else run();
   }
 
   async function nextQuestion() {
@@ -558,6 +606,12 @@ export default function DashboardApp({
         '1': 'A', '2': 'B', '3': 'C', '4': 'D',
       };
       const key = e.key.toLowerCase();
+      if (realModeRef.current) {
+        if (letterMap[key]) { e.preventDefault(); selectOption(letterMap[key]); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); goTo(currentIndex + 1); }
+        else if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(currentIndex - 1); }
+        return;
+      }
       if (!checked && letterMap[key]) {
         e.preventDefault();
         selectOption(letterMap[key]);
@@ -571,18 +625,20 @@ export default function DashboardApp({
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen, checked, currentIndex]);
+  }, [screen, checked, currentIndex, realAnswers]);
 
-  async function finish() {
+  async function finish(override?: Result[]) {
     stopTimer();
     setFinishing(true);
+    const finalResults = override ?? (realModeRef.current ? buildRealResults() : results);
+    if (override || realModeRef.current) setResults(finalResults);
     const questionIds = examQuestions.map(q => q.id);
-    const sortedResults = results
+    const sortedResults = finalResults
       .slice()
       .sort((a, b) => questionIds.indexOf(a.question.id) - questionIds.indexOf(b.question.id));
     const answers = sortedResults.map(r => r.selected);
     const correctByQuestion = examQuestions.map(q => {
-      const r = results.find(res => res.question.id === q.id);
+      const r = finalResults.find(res => res.question.id === q.id);
       return !!r?.isCorrect;
     });
 
@@ -641,6 +697,8 @@ export default function DashboardApp({
       }).then(setFilterCycle);
     }
   }
+
+  finishRef.current = finish;
 
   function requestExit() {
     showConfirm(
@@ -735,8 +793,11 @@ export default function DashboardApp({
   if (screen === 'exam') {
     const q = examQuestions[currentIndex];
     const total = examQuestions.length;
+    const real = realModeRef.current;
+    const answeredCount = real ? Object.keys(realAnswers).length : results.length;
     const scoreSoFar = results.filter(r => r.isCorrect).length;
-    const pct = Math.round((currentIndex / total) * 100);
+    const pct = Math.round(((real ? answeredCount : currentIndex) / total) * 100);
+    const mineNow = real ? realAnswers[q.id] ?? null : null;
     const isFlagged = flagged.has(q.id);
     const options: [string, string][] = [
       ['A', q.option_a], ['B', q.option_b], ['C', q.option_c], ['D', q.option_d],
@@ -781,7 +842,7 @@ export default function DashboardApp({
               })() : (
                 <span>{formatDuration(currentElapsed())}</span>
               )}
-              <span>ACIERTOS {scoreSoFar}</span>
+              <span>{real ? `CONTESTADAS ${answeredCount}` : `ACIERTOS ${scoreSoFar}`}</span>
             </div>
             <div className="mb-4 h-[7px] overflow-hidden rounded-full bg-muted">
               <div
@@ -789,7 +850,38 @@ export default function DashboardApp({
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <div className="mb-3.5 flex flex-wrap gap-1.5">
+            {timeLimitRef.current > 0 && (() => {
+              const expected = Math.floor((total * currentElapsed()) / (timeLimitRef.current * 60 * 1000));
+              const diff = answeredCount - expected;
+              return (
+                <p className={cn('mb-3 text-[12.5px]', diff < -2 ? 'text-warning' : 'text-muted-foreground')}>
+                  Ritmo: {diff >= 0 ? `vas ${diff} ${diff === 1 ? 'pregunta' : 'preguntas'} por delante` : `vas ${-diff} ${-diff === 1 ? 'pregunta' : 'preguntas'} por detrás`}
+                  {' '}(deberías llevar {expected} contestadas).
+                </p>
+              );
+            })()}
+            {real && (
+              <div className="mb-3.5 flex flex-wrap gap-1" role="group" aria-label="Ir a una pregunta">
+                {examQuestions.map((qq, i) => (
+                  <button
+                    key={qq.id + i}
+                    type="button"
+                    onClick={() => goTo(i)}
+                    aria-label={`Pregunta ${i + 1}${realAnswers[qq.id] ? ', contestada' : ', sin contestar'}${flagged.has(qq.id) ? ', marcada' : ''}`}
+                    aria-current={i === currentIndex ? 'true' : undefined}
+                    className={cn(
+                      'flex size-7 items-center justify-center rounded-lg border font-mono text-[11px] font-semibold transition-colors',
+                      realAnswers[qq.id] ? 'border-secondary/40 bg-secondary/15 text-secondary' : 'border-border bg-background text-muted-foreground',
+                      flagged.has(qq.id) && 'ring-2 ring-warning',
+                      i === currentIndex && 'border-primary bg-primary text-primary-foreground'
+                    )}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className={cn('mb-3.5 flex flex-wrap gap-1.5', real && 'hidden')}>
               {examQuestions.map((qq, i) => {
                 const r = results.find(res => res.question.id === qq.id);
                 const qFlagged = flagged.has(qq.id);
@@ -843,6 +935,7 @@ export default function DashboardApp({
             <div className="flex flex-col gap-2">
               {options.map(([letter, text]) => {
                 let stateClass = '';
+                if (real && mineNow === letter) stateClass = 'border-secondary bg-secondary/10';
                 if (checked) {
                   if (letter === q.correct) stateClass = 'border-success bg-success/10';
                   else if (letter === selected) stateClass = 'border-destructive bg-destructive/10';
@@ -918,10 +1011,30 @@ export default function DashboardApp({
               Atajos: A/B/C/D o 1-4 para responder · Enter para siguiente
             </p>
             <div className="sticky bottom-2 z-10 -mx-2 mt-4 flex items-center justify-between gap-2.5 rounded-2xl bg-card/90 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-card/75">
-              <Button type="button" variant="ghost" size="sm" onClick={requestExit} className="text-muted-foreground">
-                Salir
-              </Button>
-              {checked && (
+              <div className="flex items-center gap-1">
+                <Button type="button" variant="ghost" size="sm" onClick={requestExit} className="text-muted-foreground">
+                  Salir
+                </Button>
+                {real && currentIndex + 1 < total && (
+                  <Button type="button" variant="ghost" size="sm" disabled={finishing} onClick={finishReal} className="text-muted-foreground">
+                    Terminar
+                  </Button>
+                )}
+              </div>
+              {real ? (
+                <div className="flex flex-1 items-center justify-end gap-2">
+                  <Button type="button" variant="outline" size="auto" disabled={currentIndex === 0} onClick={() => goTo(currentIndex - 1)}>
+                    ← Anterior
+                  </Button>
+                  {currentIndex + 1 < total ? (
+                    <Button type="button" size="auto" onClick={() => goTo(currentIndex + 1)}>Siguiente →</Button>
+                  ) : (
+                    <Button type="button" size="auto" disabled={finishing} onClick={finishReal}>
+                      {finishing ? 'Guardando…' : 'Terminar examen'}
+                    </Button>
+                  )}
+                </div>
+              ) : checked && (
                 <Button type="button" size="auto" className="flex-1 sm:flex-none" disabled={finishing} onClick={nextQuestion}>
                   {finishing ? 'Guardando…' : currentIndex + 1 >= total ? 'Ver resultados' : 'Siguiente pregunta →'}
                 </Button>
@@ -1352,10 +1465,22 @@ export default function DashboardApp({
             <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[13px] font-semibold marker:content-none">
               <span>Ajustes del examen</span>
               <span className="text-[12px] font-normal text-muted-foreground group-open:hidden">
-                Corte {passMark}% · {timeLimitMinutes > 0 ? `${timeLimitMinutes} min` : 'sin límite'} · {PENALTY_OPTIONS.find(o => o.value === penalty)?.label.toLowerCase() ?? 'sin penalización'}
+                {realMode ? 'Corrección al final · ' : ''}Corte {passMark}% · {timeLimitMinutes > 0 ? `${timeLimitMinutes} min` : 'sin límite'} · {PENALTY_OPTIONS.find(o => o.value === penalty)?.label.toLowerCase() ?? 'sin penalización'}
               </span>
             </summary>
             <div className="mt-3 grid gap-x-4 gap-y-4 sm:grid-cols-3">
+            <label className="flex cursor-pointer items-start gap-2.5 text-[13px] sm:col-span-3">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 accent-[var(--secondary)]"
+                checked={realMode}
+                onChange={e => setRealMode(e.target.checked)}
+              />
+              <span>
+                <b>Corrección al final</b> (como un examen real): puedes saltar preguntas, volver atrás y cambiar respuestas; la
+                corrección y las explicaciones llegan al terminar.
+              </span>
+            </label>
             <div className="flex flex-col gap-1.5">
               <Label>Nota de corte (%)</Label>
               <Input

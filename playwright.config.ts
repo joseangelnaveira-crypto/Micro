@@ -6,6 +6,7 @@ export default defineConfig({
   testDir: 'e2e',
   timeout: 120_000,
   retries: 0,
+  workers: 1, // todas las pruebas usan el mismo usuario: en serie
   use: {
     baseURL: 'http://localhost:3000',
     channel: 'msedge',
