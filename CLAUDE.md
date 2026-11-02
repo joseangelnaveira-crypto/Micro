@@ -254,7 +254,14 @@ Pendiente: página para las preguntas del Murray (tienen explicación, no págin
 - **Aviso de versión nueva** del service worker (`RegisterServiceWorker.tsx` + mensaje `SKIP_WAITING` en `sw.js`).
 - Tests: `npm test` (node:test vía tsx, `src/lib/*.test.ts`).
 - Lotes del banco plegados en un desplegable en la tarjeta «Banco de preguntas».
-- Sin hacer: página del Murray para las preguntas del Murray; dividir `DashboardApp.tsx`; crear usuarios desde admin.
+- **Plan diario** (widget de convocatoria: preguntas nuevas/día = sin ver ÷ (días × 0,85) + repasos, botón «Empezar plan»),
+  **«Practicar» por tema flojo** en Estadísticas y **notas personales por pregunta** (`QuestionNote`, tabla
+  `question_notes`, migración 11; si no está aplicada muestra «no se pudo guardar»).
+- `DashboardApp.tsx` ya no lleva los helpers ni `TrendChart`: están en `dashboard-parts.tsx`.
+- `npm run check` = tsc + tests + build (pasarlo antes de subir; un hook mal colocado ya rompió «Generar examen» una vez:
+  los hooks van ANTES de los `return` anticipados de DashboardApp).
+- Sin hacer: página del Murray para las preguntas del Murray; seguir dividiendo `DashboardApp.tsx` (estado/flujo del
+  examen); crear usuarios desde admin. Claves dudosas pendientes de decidir (borrar o corregir): 49d84900, 3c4ae2b2.
 
 ## Cómo se prueba
 

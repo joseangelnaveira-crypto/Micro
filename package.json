@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "tsx --test src/lib/*.test.ts",
+    "check": "tsc --noEmit && npm test && next build",
     "seed": "tsx scripts/seed-questions.ts",
     "seed:example-image": "tsx scripts/seed-example-image-question.ts"
   },
