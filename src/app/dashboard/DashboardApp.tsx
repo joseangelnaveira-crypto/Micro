@@ -199,9 +199,10 @@ export default function DashboardApp({
     const online = navigator.onLine;
     setIsOnline(online);
     if (online) {
+      // Las Server Actions se ejecutan de una en una: primero la más rápida y visible (ciclo), luego las pesadas.
+      getCycleProgress().then(setGlobalCycle).catch(() => {});
       refreshHistory();
       refreshStats();
-      getCycleProgress().then(setGlobalCycle);
       syncBankIfNeeded();
     } else {
       setLoadingHistory(false);
@@ -806,7 +807,7 @@ export default function DashboardApp({
   );
 
   const container = 'mx-auto max-w-[880px] px-3.5 pt-4 pb-10 md:px-5 md:pt-7 md:pb-12';
-  const homeContainer = 'mx-auto max-w-[1040px] px-3.5 pt-5 pb-12 md:px-5 md:pt-8 md:pb-16';
+  const homeContainer = 'mx-auto max-w-[1040px] px-3.5 pt-5 pb-28 md:px-5 md:pt-8 md:pb-16';
 
   function goToSection(target: HeaderTarget) {
     if (target === 'home') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
@@ -872,9 +873,9 @@ export default function DashboardApp({
               )}
               <span>{real ? `CONTESTADAS ${answeredCount}` : `ACIERTOS ${scoreSoFar}`}</span>
             </div>
-            <div className="mb-4 h-[7px] overflow-hidden rounded-full bg-muted">
+            <div className="mb-4 h-[9px] overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-success to-warning transition-all duration-300"
+                className="h-full rounded-full bg-gradient-to-r from-[#7A55FF] via-[#A04DEB] to-[#FF7AD9] transition-all duration-500 ease-out"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -1333,11 +1334,11 @@ export default function DashboardApp({
             <span className="hero-orb anim-float" style={{ bottom: -90, left: '38%', width: 230, height: 230, background: '#3DD6FF', animationDelay: '-5s' }} />
             <span className="hero-orb anim-float" style={{ top: 30, left: -60, width: 180, height: 180, background: '#FFB347', animationDelay: '-2s', opacity: 0.35 }} />
             <div className="relative flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
-              <div className="min-w-0 max-w-xl">
+              <div className="min-w-0 max-w-2xl">
                 <p className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11.5px] font-bold uppercase tracking-[1.2px] backdrop-blur">
                   <Sparkles className="size-3.5" aria-hidden="true" /> Para hoy
                 </p>
-                <h1 className="text-[27px] font-extrabold leading-[1.12] md:text-[36px]">{sug.title}</h1>
+                <h1 className="text-balance text-[27px] font-extrabold leading-[1.12] md:text-[36px]">{sug.title}</h1>
                 <p className="mt-2.5 text-[14.5px] leading-relaxed text-white/80">{sug.subtitle}</p>
                 <button
                   type="button"
@@ -1681,7 +1682,7 @@ export default function DashboardApp({
                 const passCount = history.filter(h => h.score >= h.pass_mark).length;
                 return (
                   <>
-                    <div className="mb-1 flex flex-wrap gap-6">
+                    <div className="mb-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 [&>div]:rounded-2xl [&>div]:border [&>div]:border-border [&>div]:bg-gradient-to-br [&>div]:from-secondary/[0.07] [&>div]:to-transparent [&>div]:p-3.5">
                       <StatBlock value={totalExams} label="exámenes realizados" />
                       <StatBlock value={`${avgScore ?? '–'}%`} label="nota media" />
                       <StatBlock value={`${bestScore ?? '–'}%`} label="mejor nota" />

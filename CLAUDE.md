@@ -288,6 +288,7 @@ Pendiente: página para las preguntas del Murray (tienen explicación, no págin
   (fondo `#F5F4FC`, superficie blanca, violeta `#6A43F0`; mismas variables de siempre, solo cambian los valores), aurora animada en `body::before`,
   portada con degradado (`.hero-card`, `.hero-orb`) + anillo del ciclo, fichas «bento» (`.tile`, `.tile-icon`) para banco/ciclo/convocatoria y botón
   principal con degradado (`.btn-gradient`, variante `default` de `Button`). Los títulos `font-display italic` siguen en el código pero se ven sin cursiva.
+- Barra de navegación inferior en móvil (`DashboardHeader.tsx`, resalta la sección visible), fichas de estadísticas con degradado y `getCycleProgress` sin filtros usa dos conteos en la BD (rápido); en `DashboardApp` se lanza primero porque las Server Actions se ejecutan de una en una. El logo de la cabecera es el de siempre (placa de Petri violeta, sin ficha).
 - Sin hacer: seguir dividiendo `DashboardApp.tsx` (estado/flujo del
   examen); crear usuarios desde admin. Las dos preguntas con clave dudosa (49d84900, 3c4ae2b2) se borraron del banco (6096 preguntas).
 

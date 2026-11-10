@@ -19,6 +19,7 @@ for (const [name, size, dark] of [['movil', { width: 390, height: 844 }, false],
     await page.waitForTimeout(2500);
     await page.screenshot({ path: `e2e-capturas/${name}-inicio.png`, fullPage: true });
     const stats = page.getByText('Estadísticas de estudio').first();
+    await stats.waitFor({ timeout: 20_000 }).catch(() => {});
     if (await stats.count()) {
       await stats.click();
       await page.waitForTimeout(1500);

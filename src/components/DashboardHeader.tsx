@@ -39,10 +39,18 @@ export default function DashboardHeader({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [active, setActive] = useState<string>('home');
   const install = useInstallPWA();
 
   useEffect(() => {
-    function onScroll() { setScrolled(window.scrollY > 8); }
+    function onScroll() {
+      setScrolled(window.scrollY > 8);
+      // sección visible: la última cuyo borde superior ya pasó la cabecera
+      const top = (id: string) => document.getElementById(id)?.getBoundingClientRect().top ?? Infinity;
+      if (top('section-history') <= 140) setActive('history');
+      else if (top('section-stats') <= 140) setActive('stats');
+      else setActive('home');
+    }
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -117,8 +125,8 @@ export default function DashboardHeader({
             className="flex min-w-0 items-center gap-2 rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40"
             aria-label="Ir al inicio"
           >
-            <span className="tile-icon !size-9 !rounded-xl bg-gradient-to-br from-[#7C5CFF] to-[#5B3FE0]"><IconPetri /></span>
-            <span className="font-display truncate text-[17px] font-extrabold leading-none md:text-[19px]">Academia de Microbiología</span>
+            <span className="text-secondary"><IconPetri /></span>
+            <span className="font-display truncate py-0.5 text-[17px] font-extrabold leading-tight md:text-[19px]">Academia de Microbiología</span>
           </button>
 
           {/* ---- Menú de escritorio ---- */}
@@ -242,6 +250,30 @@ export default function DashboardHeader({
           </div>
         )}
       </header>
+
+      {/* ---- Barra de navegación inferior (solo móvil) ---- */}
+      <nav
+        aria-label="Navegación rápida"
+        className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-[1.4rem] border border-border bg-card/80 p-1.5 shadow-[var(--shadow-paper-lift)] backdrop-blur-xl md:hidden"
+        style={{ paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom))' }}
+      >
+        {[...NAV.map(n => ({ key: n.target as string, label: n.label, icon: n.icon, onClick: () => go(n.target) })),
+          { key: 'search', label: 'Buscar', icon: <Search className="size-[18px]" />, onClick: onOpenSearch }].map(item => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={item.onClick}
+            aria-current={active === item.key ? 'page' : undefined}
+            className={cn(
+              'flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 text-[10.5px] font-bold outline-none transition-all duration-200 focus-visible:ring-[3px] focus-visible:ring-ring/40 active:scale-95',
+              active === item.key ? 'bg-secondary/12 text-secondary' : 'text-muted-foreground'
+            )}
+          >
+            <span className={cn('transition-transform duration-200', active === item.key && '-translate-y-px scale-110')}>{item.icon}</span>
+            <span className="truncate">{item.label}</span>
+          </button>
+        ))}
+      </nav>
 
       {/* Instrucciones de instalación en iOS (Safari no tiene prompt propio) */}
       <Dialog open={install.showIosHint} onOpenChange={(o) => { if (!o) install.closeIosHint(); }}>

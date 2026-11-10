@@ -42,6 +42,18 @@ export async function getCycleProgress(params?: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('No autenticado');
 
+  // Camino rápido (sin filtros): dos conteos en la base de datos en vez de paginar todos los IDs.
+  if (!params?.source && !params?.topic) {
+    const [{ count: total, error: e1 }, { count: seen, error: e2 }] = await Promise.all([
+      supabase.from('questions').select('id', { count: 'exact', head: true }),
+      supabase.from('question_stats').select('question_id', { count: 'exact', head: true })
+        .eq('user_id', user.id).not('last_seen_at', 'is', null),
+    ]);
+    if (!e1 && !e2 && total !== null && seen !== null) {
+      return { total, unseen: Math.max(total - seen, 0) };
+    }
+  }
+
   const poolIds = await fetchAllIds(supabase, 'questions', {
     source: params?.source, topic: params?.topic,
   });
