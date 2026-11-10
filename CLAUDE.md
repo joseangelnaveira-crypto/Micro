@@ -284,6 +284,10 @@ Pendiente: página para las preguntas del Murray (tienen explicación, no págin
   Clases de animación en `globals.css` (todas se anulan con `prefers-reduced-motion`): `.anim-slide` (cambio de pregunta), `.anim-pop`, `.anim-icon-pop`,
   `.anim-shake` / `.anim-glow-ok` (respuesta incorrecta / correcta), `.anim-bar` (barras que crecen desde 0), `.anim-ring` (anillo SVG de la nota, usa `--ring-len`),
   `.anim-float` (manchas del hero), `.anim-dot` (pregunta actual), `.skeleton` (carga; `StatBlock value={null}` lo muestra). Las opciones del examen entran escalonadas.
+- **Rediseño moderno (nov-2026)**: tipografía Plus Jakarta Sans (`--font-display`, también para el cuerpo; `.font-display` fuerza sin cursiva), paleta fría
+  (fondo `#F5F4FC`, superficie blanca, violeta `#6A43F0`; mismas variables de siempre, solo cambian los valores), aurora animada en `body::before`,
+  portada con degradado (`.hero-card`, `.hero-orb`) + anillo del ciclo, fichas «bento» (`.tile`, `.tile-icon`) para banco/ciclo/convocatoria y botón
+  principal con degradado (`.btn-gradient`, variante `default` de `Button`). Los títulos `font-display italic` siguen en el código pero se ven sin cursiva.
 - Sin hacer: seguir dividiendo `DashboardApp.tsx` (estado/flujo del
   examen); crear usuarios desde admin. Las dos preguntas con clave dudosa (49d84900, 3c4ae2b2) se borraron del banco (6096 preguntas).
 

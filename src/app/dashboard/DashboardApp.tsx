@@ -20,7 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Sun, Moon, WifiOff, Trash2, Bell, BellOff, Check, X, Flag, Flame, FlaskConical, History as HistoryIcon, BarChart3, Zap, TriangleAlert } from 'lucide-react';
+import { Sun, Moon, WifiOff, Trash2, Bell, BellOff, Check, X, Flag, Flame, FlaskConical, History as HistoryIcon, BarChart3, Zap, TriangleAlert, Sparkles, ArrowRight, CalendarDays } from 'lucide-react';
 import CommandPalette, { type PaletteAction } from '@/components/CommandPalette';
 import Confetti from '@/components/Confetti';
 import QuestionText from '@/components/QuestionText';
@@ -1323,161 +1323,196 @@ export default function DashboardApp({
       ) : (() => {
         const sug = todaySuggestion();
         if (!sug) return null;
+        const cyclePct = globalCycle && globalCycle.total > 0
+          ? Math.round(((globalCycle.total - globalCycle.unseen) / globalCycle.total) * 100)
+          : null;
+        const HERO_RING = 2 * Math.PI * 52;
         return (
-          <Card className="card-lift anim-fade-up mb-4 relative overflow-hidden border-secondary/30 bg-gradient-to-br from-card via-card to-secondary/[0.04]" style={{ animationDelay: "40ms" }}>
-            <span className="colony-blob anim-float" style={{ top: '-30px', right: '-30px', width: '150px', height: '150px', background: 'var(--colony)' }} />
-            <span className="colony-blob anim-float" style={{ animationDelay: '-4s', bottom: '-40px', right: '60px', width: '110px', height: '110px', background: 'var(--amber)' }} />
-            <CardContent className="relative flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="font-display mb-0.5 text-[11px] uppercase tracking-[1.5px] text-secondary">Hoy</p>
-                <p className="font-display text-[20px] italic leading-snug text-foreground">{sug.title}</p>
-                <p className="text-[13px] leading-relaxed text-muted-foreground">{sug.subtitle}</p>
+          <section className="hero-card anim-fade-up relative mb-4 overflow-hidden rounded-[1.75rem] p-6 text-white md:p-9" style={{ animationDelay: '40ms' }}>
+            <span className="hero-orb anim-float" style={{ top: -70, right: -50, width: 260, height: 260, background: '#FF7AD9' }} />
+            <span className="hero-orb anim-float" style={{ bottom: -90, left: '38%', width: 230, height: 230, background: '#3DD6FF', animationDelay: '-5s' }} />
+            <span className="hero-orb anim-float" style={{ top: 30, left: -60, width: 180, height: 180, background: '#FFB347', animationDelay: '-2s', opacity: 0.35 }} />
+            <div className="relative flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0 max-w-xl">
+                <p className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11.5px] font-bold uppercase tracking-[1.2px] backdrop-blur">
+                  <Sparkles className="size-3.5" aria-hidden="true" /> Para hoy
+                </p>
+                <h1 className="text-[27px] font-extrabold leading-[1.12] md:text-[36px]">{sug.title}</h1>
+                <p className="mt-2.5 text-[14.5px] leading-relaxed text-white/80">{sug.subtitle}</p>
+                <button
+                  type="button"
+                  onClick={sug.onRun}
+                  disabled={starting}
+                  className="hero-cta group mt-6 inline-flex h-12 items-center gap-2 rounded-full bg-white px-7 text-[15px] font-extrabold text-[#3B22A8] shadow-[0_10px_30px_-8px_rgba(0,0,0,0.45)] outline-none transition-all hover:-translate-y-0.5 hover:shadow-[0_16px_36px_-8px_rgba(0,0,0,0.5)] focus-visible:ring-[3px] focus-visible:ring-white/70 active:scale-[0.97] disabled:opacity-60"
+                >
+                  {starting ? 'Un momento…' : sug.cta}
+                  <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                </button>
               </div>
-              <Button type="button" size="auto" onClick={sug.onRun} disabled={starting}>
-                {starting ? 'Un momento…' : sug.cta}
-              </Button>
-            </CardContent>
-          </Card>
+              {cyclePct !== null && (
+                <div className="flex flex-none items-center gap-4 md:flex-col md:gap-2">
+                  <div className="relative size-[116px] md:size-[140px]">
+                    <svg viewBox="0 0 120 120" className="size-full -rotate-90" role="img" aria-label={`Ciclo completado al ${cyclePct}%`}>
+                      <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="9" />
+                      <circle
+                        cx="60" cy="60" r="52" fill="none" stroke="#fff" strokeWidth="9" strokeLinecap="round"
+                        className="anim-ring"
+                        strokeDasharray={HERO_RING}
+                        strokeDashoffset={HERO_RING * (1 - cyclePct / 100)}
+                        style={{ ['--ring-len' as string]: HERO_RING }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center font-mono text-[28px] font-extrabold tabular-nums md:text-[32px]">
+                      <AnimatedNumber value={cyclePct} duration={1100} />%
+                    </div>
+                  </div>
+                  <p className="text-[12px] font-semibold uppercase tracking-[1.2px] text-white/75">Banco visto<br className="hidden md:block" /> en este ciclo</p>
+                </div>
+              )}
+            </div>
+          </section>
         );
       })()}
 
-      <Card className="anim-fade-up mb-4" style={{ animationDelay: "80ms" }}>
-        <CardContent className="flex flex-wrap items-center justify-between gap-3">
-          {editingExamDate ? (
-            <>
-              <div className="flex flex-wrap items-center gap-2">
-                <Label htmlFor="exam-date" className="text-[13px] text-muted-foreground">Fecha de tu convocatoria</Label>
-                <Input
-                  id="exam-date"
-                  type="date"
-                  value={examDateDraft}
-                  onChange={e => setExamDateDraft(e.target.value)}
-                  className="w-auto"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                {examDate && (
-                  <Button type="button" variant="ghost" size="sm" disabled={savingExamDate}
-                    onClick={() => { setExamDateDraft(''); saveExamDate(); }}>
-                    Quitar
-                  </Button>
-                )}
-                <Button type="button" variant="ghost" size="sm" onClick={() => { setEditingExamDate(false); setExamDateDraft(examDate ?? ''); }}>
-                  Cancelar
-                </Button>
-                <Button type="button" size="sm" disabled={savingExamDate} onClick={saveExamDate}>
-                  {savingExamDate ? 'Guardando…' : 'Guardar'}
-                </Button>
-              </div>
-            </>
-          ) : examDate ? (
-            (() => {
-              const days = daysUntilExam();
-              if (days === null) return null;
-              const label =
-                days < 0 ? `La convocatoria fue hace ${-days} días` :
-                days === 0 ? 'Hoy es tu convocatoria' :
-                days === 1 ? 'Mañana es tu convocatoria' :
-                `Faltan ${days} días para tu convocatoria`;
-              const tone =
-                days < 0 ? 'text-muted-foreground' :
-                days <= 14 ? 'text-destructive' :
-                days <= 60 ? 'text-warning' : 'text-secondary';
-              return (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className={cn('font-display text-[19px] italic', tone)}>{label}</span>
-                    <span className="text-[12.5px] text-muted-foreground">
-                      · {new Date(examDate + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+      {/* Bento: banco, ciclo y convocatoria */}
+      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
+        <Card className="tile anim-fade-up gap-4 py-5" style={{ animationDelay: '90ms' }}>
+          <CardContent className="flex h-full flex-col gap-3">
+            <span className="tile-icon bg-gradient-to-br from-[#7C5CFF] to-[#5B3FE0]"><IconBook /></span>
+            <div>
+              <b className="block font-mono text-[30px] font-extrabold leading-none tracking-tight tabular-nums md:text-[34px]"><AnimatedNumber value={meta.total} /></b>
+              <span className="mt-1 block text-[13px] font-semibold text-muted-foreground">preguntas en el banco</span>
+            </div>
+            {meta.sources.length > 0 && (
+              <details className="group mt-auto">
+                <summary className="flex cursor-pointer list-none items-center gap-2 text-[12px] font-semibold uppercase tracking-[1px] text-muted-foreground marker:content-none">
+                  Lotes <span className="font-mono normal-case tracking-normal text-foreground">{meta.sources.length}</span>
+                  <span className="text-[11px] normal-case tracking-normal group-open:hidden">· mostrar</span>
+                  <span className="hidden text-[11px] normal-case tracking-normal group-open:inline">· ocultar</span>
+                </summary>
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  {meta.sources.map(s => (
+                    <span key={s.name} className="rounded-full border border-border bg-background px-2.5 py-0.5 text-[11.5px] text-muted-foreground">
+                      {s.name} <b className="font-mono text-foreground">{s.count}</b>
                     </span>
+                  ))}
+                </div>
+              </details>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="tile anim-fade-up gap-4 py-5" style={{ animationDelay: '140ms' }}>
+          <CardContent className="flex h-full flex-col gap-3">
+            <span className="tile-icon bg-gradient-to-br from-[#22C58B] to-[#12794F]"><Zap className="size-5" aria-hidden="true" /></span>
+            <div>
+              <b className="block font-mono text-[34px] font-extrabold leading-none tracking-tight tabular-nums">
+                {globalCycle ? <AnimatedNumber value={globalCycle.unseen} /> : <span className="skeleton inline-block h-[34px] w-20 align-top" aria-label="Cargando" />}
+              </b>
+              <span className="mt-1 block text-[13px] font-semibold text-muted-foreground">pendientes de ver en el ciclo</span>
+            </div>
+            {globalCycle && globalCycle.total > 0 && (() => {
+              const pct = Math.round(((globalCycle.total - globalCycle.unseen) / globalCycle.total) * 100);
+              return (
+                <div className="mt-auto">
+                  <div className="mb-1.5 flex justify-between text-[11.5px] font-semibold text-muted-foreground">
+                    <span>Ciclo completado</span>
+                    <span className="font-mono">{pct}%</span>
                   </div>
-                  {(() => {
-                    const plan = dailyPlan();
-                    if (!plan) return null;
-                    return (
-                      <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto">
-                        <span className="text-[13px] text-muted-foreground">
-                          Plan de hoy: <b className="text-foreground">{plan.newPerDay}</b> nuevas
-                          {dueCount > 0 && <> + <b className="text-foreground">{dueCount}</b> de repaso</>}
-                        </span>
-                        <Button type="button" size="sm" disabled={starting} onClick={handleDailyPlan}>Empezar plan</Button>
-                      </div>
-                    );
-                  })()}
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setEditingExamDate(true)}>
-                    Cambiar fecha
-                  </Button>
-                </>
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="anim-bar h-full rounded-full bg-gradient-to-r from-success to-warning transition-[width] duration-1000 ease-out"
+                      style={{ width: `${Math.max(pct, pct > 0 ? 2 : 0)}%` }}
+                    />
+                  </div>
+                </div>
               );
-            })()
-          ) : (
-            <>
-              <p className="text-[13.5px] text-muted-foreground">
-                ¿Cuándo es tu convocatoria? Añádela y verás cuánto queda cada vez que entres.
-              </p>
-              <Button type="button" variant="outline" size="sm" onClick={() => setEditingExamDate(true)}>
-                Añadir fecha
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            })()}
+          </CardContent>
+        </Card>
 
-      {/* Banco: banda compacta a todo el ancho (cifras + lotes + progreso del ciclo) */}
-      <Card className="card-lift anim-fade-up mb-4" style={{ animationDelay: '120ms' }}>
-        <CardContent className="flex flex-col gap-5">
-          <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
-            <div className="flex items-center gap-3">
-              <span className="flex size-10 flex-none items-center justify-center rounded-xl bg-secondary/10 text-secondary">
-                <IconBook />
-              </span>
-              <div>
-                <CardTitle>Banco de preguntas</CardTitle>
-                <p className="mt-1 text-[13px] text-muted-foreground">Bienvenido, {displayName}</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-8">
-              <StatBlock value={meta.total} label="en el banco" />
-              <StatBlock value={globalCycle ? globalCycle.unseen : null} label="pendientes ciclo" />
-            </div>
-          </div>
-
-          {globalCycle && globalCycle.total > 0 && (() => {
-            const pct = Math.round(((globalCycle.total - globalCycle.unseen) / globalCycle.total) * 100);
-            return (
-              <div>
-                <div className="mb-1.5 flex justify-between text-[11.5px] font-semibold text-muted-foreground">
-                  <span>Ciclo completado</span>
-                  <span className="font-mono">{pct}%</span>
+        <Card className="tile anim-fade-up col-span-2 gap-4 py-5 md:col-span-1" style={{ animationDelay: '190ms' }}>
+          <CardContent className="flex h-full flex-col gap-3">
+            {editingExamDate ? (
+              <>
+                <span className="tile-icon bg-gradient-to-br from-[#FFB347] to-[#F0802B]"><CalendarDays className="size-5" aria-hidden="true" /></span>
+                <Label htmlFor="exam-date" className="text-[13px] text-muted-foreground">Fecha de tu convocatoria</Label>
+                <Input id="exam-date" type="date" value={examDateDraft} onChange={e => setExamDateDraft(e.target.value)} />
+                <div className="mt-auto flex flex-wrap items-center gap-1.5">
+                  <Button type="button" size="sm" disabled={savingExamDate} onClick={saveExamDate}>
+                    {savingExamDate ? 'Guardando…' : 'Guardar'}
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => { setEditingExamDate(false); setExamDateDraft(examDate ?? ''); }}>
+                    Cancelar
+                  </Button>
+                  {examDate && (
+                    <Button type="button" variant="ghost" size="sm" disabled={savingExamDate}
+                      onClick={() => { setExamDateDraft(''); saveExamDate(); }}>
+                      Quitar
+                    </Button>
+                  )}
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="anim-bar h-full rounded-full bg-gradient-to-r from-success to-warning transition-[width] duration-1000 ease-out"
-                    style={{ width: `${Math.max(pct, pct > 0 ? 2 : 0)}%` }}
-                  />
+              </>
+            ) : examDate ? (
+              (() => {
+                const days = daysUntilExam();
+                if (days === null) return null;
+                const tone =
+                  days < 0 ? 'text-muted-foreground' :
+                  days <= 14 ? 'text-destructive' :
+                  days <= 60 ? 'text-foreground' : 'text-secondary';
+                const label =
+                  days < 0 ? `días desde la convocatoria` :
+                  days === 0 ? 'Hoy es tu convocatoria' :
+                  days === 1 ? 'día para tu convocatoria' :
+                  'días para tu convocatoria';
+                const plan = dailyPlan();
+                return (
+                  <>
+                    <span className="tile-icon bg-gradient-to-br from-[#FFB347] to-[#F0802B]"><CalendarDays className="size-5" aria-hidden="true" /></span>
+                    <div>
+                      {days === 0 ? (
+                        <b className={cn('block text-[28px] font-extrabold leading-tight tracking-tight', tone)}>{label}</b>
+                      ) : (
+                        <>
+                          <b className={cn('block font-mono text-[34px] font-extrabold leading-none tracking-tight tabular-nums', tone)}>
+                            <AnimatedNumber value={Math.abs(days)} />
+                          </b>
+                          <span className="mt-1 block text-[13px] font-semibold text-muted-foreground">{label}</span>
+                        </>
+                      )}
+                      <span className="mt-0.5 block text-[12px] text-muted-foreground">
+                        {new Date(examDate + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <div className="mt-auto flex flex-wrap items-center gap-2">
+                      {plan && (
+                        <Button type="button" size="sm" disabled={starting} onClick={handleDailyPlan}>
+                          Plan de hoy · {plan.newPerDay}{dueCount > 0 ? `+${dueCount}` : ''}
+                        </Button>
+                      )}
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setEditingExamDate(true)}>
+                        Cambiar fecha
+                      </Button>
+                    </div>
+                  </>
+                );
+              })()
+            ) : (
+              <>
+                <span className="tile-icon bg-gradient-to-br from-[#FFB347] to-[#F0802B]"><CalendarDays className="size-5" aria-hidden="true" /></span>
+                <div>
+                  <b className="block text-[19px] font-extrabold leading-tight tracking-tight">¿Cuándo es tu convocatoria?</b>
+                  <span className="mt-1 block text-[13px] text-muted-foreground">Añádela y verás cuánto queda y tu plan diario.</span>
                 </div>
-              </div>
-            );
-          })()}
-
-          {meta.sources.length > 0 && (
-            <details className="group">
-              <summary className="flex cursor-pointer list-none items-center gap-2 text-[12px] font-semibold uppercase tracking-[1px] text-muted-foreground marker:content-none">
-                Lotes <span className="font-mono normal-case tracking-normal text-foreground">{meta.sources.length}</span>
-                <span className="text-[11px] normal-case tracking-normal group-open:hidden">· mostrar</span>
-                <span className="hidden text-[11px] normal-case tracking-normal group-open:inline">· ocultar</span>
-              </summary>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {meta.sources.map(s => (
-                  <span key={s.name} className="rounded-full border border-border bg-background px-3 py-1 text-[12.5px] text-muted-foreground">
-                    {s.name} <b className="font-mono text-foreground">{s.count}</b>
-                  </span>
-                ))}
-              </div>
-            </details>
-          )}
-        </CardContent>
-      </Card>
+                <Button type="button" variant="outline" size="sm" className="mt-auto self-start" onClick={() => setEditingExamDate(true)}>
+                  Añadir fecha
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Generar examen: a todo el ancho, formulario en rejilla */}
       <Card className="card-lift anim-fade-up mb-4 border-secondary/40 bg-gradient-to-br from-card via-card to-secondary/[0.04]" style={{ animationDelay: '180ms' }}>

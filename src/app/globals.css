@@ -4,22 +4,22 @@
 @custom-variant dark (&:where(.dark-mode, .dark-mode *));
 
 :root{
-  --agar: #FBF4E3;
-  --agar-deep: #F6ECD2;
-  --dish-line: #F0DEBE;
-  --dish-line-soft: rgba(240,222,190,0.6);
-  --surface: #FFFDF8;
+  --agar: #F5F4FC;
+  --agar-deep: #E9E6F7;
+  --dish-line: #DDD8F0;
+  --dish-line-soft: rgba(221,216,240,0.7);
+  --surface: #FFFFFF;
   --surface-raised: #FFFFFF;
-  --ink: #241E3D;
-  --ink-soft: #5B5480;
-  --graphite: #5B5480;
+  --ink: #17142E;
+  --ink-soft: #5A5678;
+  --graphite: #5A5678;
   --colony: #1B7A50;
   --contam: #C13A2C;
   --amber: #F4A340;
-  --violet: #6D45D3;
+  --violet: #6A43F0;
 
   /* ---- Variables de shadcn/ui, mapeadas a nuestra propia paleta de arriba ---- */
-  --radius: 1.1rem;
+  --radius: 1.4rem;
   --background: var(--agar);
   --foreground: var(--ink);
   --card: var(--surface);
@@ -32,7 +32,7 @@
   --secondary-foreground: #FFFFFF;
   --muted: var(--agar-deep);
   --muted-foreground: var(--graphite);
-  --accent: #F2EBFB;
+  --accent: #EFEBFF;
   --accent-foreground: var(--violet);
   --destructive: var(--contam);
   --destructive-foreground: #FFFFFF;
@@ -40,14 +40,14 @@
   --success-foreground: #FFFFFF;
   --warning: var(--amber);
   --warning-foreground: var(--ink);
-  --border: rgba(109, 69, 211, 0.08);
-  --input: #978C76; /* borde de controles: >=3:1 sobre --surface/--agar (WCAG 1.4.11) */
+  --border: rgba(60, 45, 140, 0.09);
+  --input: #8C88A8; /* borde de controles: >=3:1 sobre --surface/--agar (WCAG 1.4.11) */
   --ring: var(--violet);
 
   /* ---- Elevación: sombras tipo papel, no de "material design" ---- */
-  --shadow-paper: 0 1px 2px rgba(36, 30, 61, 0.04), 0 8px 24px -6px rgba(36, 30, 61, 0.08);
-  --shadow-paper-hover: 0 2px 4px rgba(36, 30, 61, 0.05), 0 14px 36px -8px rgba(36, 30, 61, 0.14);
-  --shadow-paper-lift: 0 4px 8px rgba(36, 30, 61, 0.06), 0 24px 48px -12px rgba(36, 30, 61, 0.18);
+  --shadow-paper: 0 1px 2px rgba(40, 25, 110, 0.05), 0 10px 30px -10px rgba(70, 45, 190, 0.16);
+  --shadow-paper-hover: 0 2px 4px rgba(40, 25, 110, 0.06), 0 20px 44px -12px rgba(70, 45, 190, 0.28);
+  --shadow-paper-lift: 0 4px 8px rgba(40, 25, 110, 0.07), 0 28px 56px -14px rgba(70, 45, 190, 0.34);
 }
 
 .dark-mode{
@@ -127,15 +127,10 @@ body{ min-height: 100dvh; }
 /* clip (no hidden): evita el desplazamiento lateral en móvil sin romper el header sticky */
 html, body{ overflow-x: clip; }
 body{
-  background:
-    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(109, 69, 211, 0.07), transparent 60%),
-    radial-gradient(ellipse 60% 40% at 95% 20%, rgba(244, 163, 64, 0.08), transparent 60%),
-    radial-gradient(ellipse 70% 50% at 90% 100%, rgba(27, 122, 80, 0.06), transparent 60%),
-    radial-gradient(ellipse 60% 40% at 5% 85%, rgba(193, 58, 44, 0.05), transparent 60%),
-    var(--agar);
-  background-attachment: fixed;
+  background: var(--agar);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-display), -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  word-spacing: 0.05em;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   text-rendering: optimizeLegibility;
@@ -156,14 +151,66 @@ body.dark-mode{
   --contam: #FF8272;
   --amber: #FFC168;
   --violet: #B29CFF;
-  background:
-    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(178, 156, 255, 0.08), transparent 60%),
-    radial-gradient(ellipse 60% 40% at 95% 20%, rgba(255, 193, 104, 0.05), transparent 60%),
-    radial-gradient(ellipse 70% 50% at 90% 100%, rgba(62, 209, 140, 0.05), transparent 60%),
-    radial-gradient(ellipse 60% 40% at 5% 85%, rgba(255, 130, 114, 0.04), transparent 60%),
-    var(--agar);
-  background-attachment: fixed;
+  background: var(--agar);
 }
+
+/* ---- Aurora de fondo: tres manchas de color que derivan despacio ---- */
+body::before{
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(35% 30% at 18% 12%, rgba(124, 92, 255, 0.20), transparent 70%),
+    radial-gradient(30% 28% at 85% 18%, rgba(255, 122, 217, 0.14), transparent 70%),
+    radial-gradient(34% 30% at 75% 88%, rgba(61, 214, 255, 0.14), transparent 70%),
+    radial-gradient(28% 26% at 8% 82%, rgba(34, 197, 139, 0.10), transparent 70%);
+  animation: aurora 26s ease-in-out infinite alternate;
+}
+body.dark-mode::before{
+  background:
+    radial-gradient(35% 30% at 18% 12%, rgba(124, 92, 255, 0.22), transparent 70%),
+    radial-gradient(30% 28% at 85% 18%, rgba(255, 122, 217, 0.10), transparent 70%),
+    radial-gradient(34% 30% at 75% 88%, rgba(61, 214, 255, 0.08), transparent 70%);
+}
+@keyframes aurora {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(-3%, 4%, 0) scale(1.08); }
+}
+
+/* ---- Tipografía de títulos: sans moderna, sin cursiva ---- */
+.font-display{ font-style: normal; font-weight: 700; letter-spacing: -0.012em; }
+
+/* ---- Portada (hero) y fichas ---- */
+.hero-card{
+  background: linear-gradient(135deg, #5636EC 0%, #7A4DFF 48%, #B44DE8 100%);
+  box-shadow: 0 30px 70px -26px rgba(90, 60, 240, 0.7), inset 0 1px 0 rgba(255,255,255,0.25);
+}
+.hero-orb{ position: absolute; border-radius: 50%; filter: blur(46px); opacity: 0.5; pointer-events: none; }
+.tile{ position: relative; overflow: hidden; transition: transform 220ms ease, box-shadow 220ms ease; }
+.tile::after{
+  content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(160deg, rgba(124, 92, 255, 0.07), transparent 45%);
+}
+@media (hover: hover){ .tile:hover{ transform: translateY(-3px); box-shadow: var(--shadow-paper-hover); } }
+.tile-icon{
+  display: flex; width: 44px; height: 44px; flex: none; align-items: center; justify-content: center;
+  border-radius: 14px; color: #fff; box-shadow: 0 10px 20px -8px rgba(60, 40, 160, 0.55);
+}
+
+/* ---- Botón principal: degradado con brillo ---- */
+.btn-gradient{
+  background: linear-gradient(135deg, #7A55FF 0%, #5636EC 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 10px 24px -10px rgba(86, 54, 236, 0.75), inset 0 1px 0 rgba(255,255,255,0.28);
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+@media (hover: hover){
+  .btn-gradient:hover:not(:disabled){ transform: translateY(-1px); filter: brightness(1.08); box-shadow: 0 16px 30px -10px rgba(86, 54, 236, 0.85), inset 0 1px 0 rgba(255,255,255,0.3); }
+}
+.dark-mode .btn-gradient{ background: linear-gradient(135deg, #C9BBFF 0%, #9B82FF 100%); color: #14161F; }
 
 /* ---- Gráfica de evolución ---- */
 .trend-svg{ width: 100%; height: auto; display:block; margin-bottom: 8px; }
@@ -307,4 +354,5 @@ body.dark-mode{
 @media (prefers-reduced-motion: reduce){
   *{ transition: none !important; animation: none !important; }
   .confetti-piece{ display: none !important; }
+  body::before{ animation: none !important; }
 }

@@ -117,8 +117,8 @@ export default function DashboardHeader({
             className="flex min-w-0 items-center gap-2 rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40"
             aria-label="Ir al inicio"
           >
-            <span className="text-secondary"><IconPetri /></span>
-            <span className="font-display truncate text-[19px] italic leading-none md:text-xl">Academia de Microbiología</span>
+            <span className="tile-icon !size-9 !rounded-xl bg-gradient-to-br from-[#7C5CFF] to-[#5B3FE0]"><IconPetri /></span>
+            <span className="font-display truncate text-[17px] font-extrabold leading-none md:text-[19px]">Academia de Microbiología</span>
           </button>
 
           {/* ---- Menú de escritorio ---- */}

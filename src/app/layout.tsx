@@ -1,12 +1,10 @@
 import type { Metadata } from 'next';
-import { Instrument_Serif } from 'next/font/google';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import RegisterServiceWorker from '@/components/RegisterServiceWorker';
 
-const instrumentSerif = Instrument_Serif({
+const instrumentSerif = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: '400',
-  style: ['italic', 'normal'],
   variable: '--font-display',
   display: 'swap',
 });
