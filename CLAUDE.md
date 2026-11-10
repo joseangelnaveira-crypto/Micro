@@ -280,6 +280,10 @@ Pendiente: página para las preguntas del Murray (tienen explicación, no págin
   deja la pregunta en blanco, y al terminar se calcula todo (`finish(override)`). El temporizador llama a `finishRef.current`
   (antes cerraba sobre estado viejo y, al acabar el tiempo, guardaba el examen vacío). Con límite de tiempo hay indicador de ritmo.
 - **Revisar un examen del historial** (botón «Revisar», pantalla `review` con `ExamReview`) y `/api/export?what=results` incluye las notas.
+- **Pulido visual y animaciones (nov-2026)**: arreglado el doble relleno superior de las tarjetas (`Card` ya lleva `py-6`: no poner `pt-6` en `CardContent`).
+  Clases de animación en `globals.css` (todas se anulan con `prefers-reduced-motion`): `.anim-slide` (cambio de pregunta), `.anim-pop`, `.anim-icon-pop`,
+  `.anim-shake` / `.anim-glow-ok` (respuesta incorrecta / correcta), `.anim-bar` (barras que crecen desde 0), `.anim-ring` (anillo SVG de la nota, usa `--ring-len`),
+  `.anim-float` (manchas del hero), `.anim-dot` (pregunta actual), `.skeleton` (carga; `StatBlock value={null}` lo muestra). Las opciones del examen entran escalonadas.
 - Sin hacer: seguir dividiendo `DashboardApp.tsx` (estado/flujo del
   examen); crear usuarios desde admin. Las dos preguntas con clave dudosa (49d84900, 3c4ae2b2) se borraron del banco (6096 preguntas).
 

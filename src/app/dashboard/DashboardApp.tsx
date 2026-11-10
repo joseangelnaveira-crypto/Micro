@@ -72,6 +72,8 @@ type Modal = {
 const PROGRESS_KEY = 'academia_exam_progress_v1';
 const DARK_MODE_KEY = 'academia_dark_mode';
 
+const RING_LEN = 2 * Math.PI * 52;
+
 export default function DashboardApp({
   displayName, isAdmin, initialMeta, userId, initialExamDate,
 }: {
@@ -853,8 +855,8 @@ export default function DashboardApp({
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="anim-fade">
+          <CardContent>
             <div className="mb-1.5 flex justify-between font-mono text-xs font-semibold text-muted-foreground">
               <span>PREGUNTA {currentIndex + 1} / {total}</span>
               {timeLimitRef.current > 0 ? (() => {
@@ -917,6 +919,7 @@ export default function DashboardApp({
                     className={cn(
                       'size-2 rounded-full bg-muted transition-colors',
                       r && (r.isCorrect ? 'bg-success' : 'bg-destructive'),
+                      !r && i === currentIndex && 'anim-dot bg-secondary',
                       qFlagged && 'ring-2 ring-warning'
                     )}
                   />
@@ -924,6 +927,7 @@ export default function DashboardApp({
               })}
             </div>
             {composition.length > 1 && <CompositionTags composition={composition} className="mb-3.5" />}
+            <div key={currentIndex} className="anim-slide">
             <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
               <Badge variant="secondary" className="max-w-full whitespace-normal">{q.source} · {q.topic}</Badge>
               <div className="ml-auto flex items-center gap-1.5">
@@ -959,12 +963,14 @@ export default function DashboardApp({
             <QuestionText text={q.question} className="mb-5 text-[19px] font-bold leading-relaxed tracking-tight sm:text-xl" caseClassName="mb-4" />
 
             <div className="flex flex-col gap-2">
-              {options.map(([letter, text]) => {
+              {options.map(([letter, text], optIndex) => {
                 let stateClass = '';
                 if (real && mineNow === letter) stateClass = 'border-secondary bg-secondary/10';
                 if (checked) {
-                  if (letter === q.correct) stateClass = 'border-success bg-success/10';
-                  else if (letter === selected) stateClass = 'border-destructive bg-destructive/10';
+                  if (letter === q.correct) stateClass = 'anim-glow-ok border-success bg-success/10';
+                  else if (letter === selected) stateClass = 'anim-shake border-destructive bg-destructive/10';
+                } else {
+                  stateClass = cn(stateClass, 'anim-fade-up');
                 }
                 return (
                   <button
@@ -972,6 +978,7 @@ export default function DashboardApp({
                     type="button"
                     data-slot="option"
                     disabled={checked}
+                    style={!checked ? { animationDelay: `${60 + optIndex * 55}ms` } : undefined}
                     onClick={() => selectOption(letter)}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-2xl border border-input bg-card px-4 py-3.5 text-left text-[15px] font-medium leading-snug text-foreground transition-all outline-none',
@@ -995,9 +1002,9 @@ export default function DashboardApp({
                       }
                     >
                       {checked && letter === q.correct ? (
-                        <Check className="size-4" strokeWidth={3} />
+                        <Check className="anim-icon-pop size-4" strokeWidth={3} />
                       ) : checked && letter === selected && letter !== q.correct ? (
-                        <X className="size-4" strokeWidth={3} />
+                        <X className="anim-icon-pop size-4" strokeWidth={3} />
                       ) : (
                         letter
                       )}
@@ -1011,7 +1018,7 @@ export default function DashboardApp({
             {checked && (
               <div
                 className={cn(
-                  'mt-3 rounded-2xl border p-4 text-[14.5px] leading-relaxed',
+                  'anim-pop mt-3 rounded-2xl border p-4 text-[14.5px] leading-relaxed',
                   selected === q.correct ? 'border-success bg-success/10 text-success' : 'border-destructive bg-destructive/10 text-destructive'
                 )}
               >
@@ -1032,6 +1039,7 @@ export default function DashboardApp({
               </div>
             )}
             {checked && <QuestionNote questionId={q.id} disabled={!isOnline} />}
+            </div>
 
             <p className="mt-4 hidden text-center text-[11.5px] text-muted-foreground md:block">
               Atajos: A/B/C/D o 1-4 para responder · Enter para siguiente
@@ -1078,8 +1086,8 @@ export default function DashboardApp({
     return (
       <div className={container}>
         {modalNode}
-        <Card className="mb-4">
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+        <Card className="anim-fade-up mb-4">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="font-display text-[19px] italic">Revisión de examen</h2>
               <p className="font-mono text-[12px] text-muted-foreground">
@@ -1122,16 +1130,24 @@ export default function DashboardApp({
       <div className={container}>
         <Confetti trigger={confettiTrigger} />
         {modalNode}
-        <Card className="mb-4 text-center">
-          <CardContent className="pt-6">
+        <Card className="anim-pop mb-4 text-center">
+          <CardContent>
             <h2 className="font-display mb-1.5 text-[19px] italic">Resultados del examen</h2>
-            <div
-              className="mx-auto my-2 flex size-[152px] items-center justify-center rounded-full shadow-lg"
-              style={{ background: `conic-gradient(${passed ? 'var(--success)' : 'var(--destructive)'} calc(${lastAttempt.score} * 1%), var(--border) 0)` }}
-            >
-              <div className="flex size-[118px] flex-col items-center justify-center rounded-full bg-card font-mono shadow-inner">
-                <b className="text-[30px] leading-none tracking-tight">{lastAttempt.score}%</b>
-                <span className={cn('mt-[5px] text-[10.5px] font-extrabold uppercase tracking-[1.5px]', passed ? 'text-success' : 'text-destructive')}>
+            <div className="relative mx-auto my-3 size-[160px]">
+              <svg viewBox="0 0 120 120" className="size-full -rotate-90" role="img" aria-label={`Nota ${lastAttempt.score}%`}>
+                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--border)" strokeWidth="9" />
+                <circle
+                  cx="60" cy="60" r="52" fill="none" strokeWidth="9" strokeLinecap="round"
+                  stroke={passed ? 'var(--success)' : 'var(--destructive)'}
+                  className="anim-ring"
+                  strokeDasharray={RING_LEN}
+                  strokeDashoffset={RING_LEN * (1 - Math.min(100, Math.max(0, lastAttempt.score)) / 100)}
+                  style={{ ['--ring-len' as string]: RING_LEN }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center font-mono">
+                <b className="text-[32px] leading-none tracking-tight tabular-nums"><AnimatedNumber value={lastAttempt.score} duration={1100} />%</b>
+                <span className={cn('anim-pop mt-[6px] text-[10.5px] font-extrabold uppercase tracking-[1.5px]', passed ? 'text-success' : 'text-destructive')} style={{ animationDelay: '900ms' }}>
                   {passed ? 'Apto' : 'No apto'}
                 </span>
               </div>
@@ -1267,7 +1283,7 @@ export default function DashboardApp({
 
       {!isOnline && (
         <Card className="mb-4 border-warning/60 bg-warning/5">
-          <CardContent className="flex flex-wrap items-center gap-2.5 pt-6">
+          <CardContent className="flex flex-wrap items-center gap-2.5">
             <Badge variant="warning" className="gap-1.5"><WifiOff className="size-3.5" /> Sin conexión</Badge>
             <p className="text-[13.5px] text-muted-foreground">
               Puedes seguir haciendo exámenes con el banco descargado; los resultados se sincronizarán al recuperar la conexión.
@@ -1278,7 +1294,7 @@ export default function DashboardApp({
 
       {isOnline && pendingSyncCount > 0 && (
         <Card className="mb-4 border-secondary/60 bg-secondary/5">
-          <CardContent className="flex flex-wrap items-center justify-between gap-2.5 pt-6">
+          <CardContent className="flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-2.5">
               <Badge variant="secondary">{pendingSyncCount} examen{pendingSyncCount === 1 ? '' : 'es'} sin sincronizar</Badge>
               <p className="text-[13.5px] text-muted-foreground">Se guardaron sin conexión.</p>
@@ -1309,9 +1325,9 @@ export default function DashboardApp({
         if (!sug) return null;
         return (
           <Card className="card-lift anim-fade-up mb-4 relative overflow-hidden border-secondary/30 bg-gradient-to-br from-card via-card to-secondary/[0.04]" style={{ animationDelay: "40ms" }}>
-            <span className="colony-blob" style={{ top: '-30px', right: '-30px', width: '150px', height: '150px', background: 'var(--colony)' }} />
-            <span className="colony-blob" style={{ bottom: '-40px', right: '60px', width: '110px', height: '110px', background: 'var(--amber)' }} />
-            <CardContent className="relative flex flex-wrap items-center justify-between gap-3 pt-6">
+            <span className="colony-blob anim-float" style={{ top: '-30px', right: '-30px', width: '150px', height: '150px', background: 'var(--colony)' }} />
+            <span className="colony-blob anim-float" style={{ animationDelay: '-4s', bottom: '-40px', right: '60px', width: '110px', height: '110px', background: 'var(--amber)' }} />
+            <CardContent className="relative flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <p className="font-display mb-0.5 text-[11px] uppercase tracking-[1.5px] text-secondary">Hoy</p>
                 <p className="font-display text-[20px] italic leading-snug text-foreground">{sug.title}</p>
@@ -1326,7 +1342,7 @@ export default function DashboardApp({
       })()}
 
       <Card className="anim-fade-up mb-4" style={{ animationDelay: "80ms" }}>
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3">
           {editingExamDate ? (
             <>
               <div className="flex flex-wrap items-center gap-2">
@@ -1409,7 +1425,7 @@ export default function DashboardApp({
 
       {/* Banco: banda compacta a todo el ancho (cifras + lotes + progreso del ciclo) */}
       <Card className="card-lift anim-fade-up mb-4" style={{ animationDelay: '120ms' }}>
-        <CardContent className="flex flex-col gap-5 pt-6">
+        <CardContent className="flex flex-col gap-5">
           <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
             <div className="flex items-center gap-3">
               <span className="flex size-10 flex-none items-center justify-center rounded-xl bg-secondary/10 text-secondary">
@@ -1422,7 +1438,7 @@ export default function DashboardApp({
             </div>
             <div className="flex flex-wrap gap-8">
               <StatBlock value={meta.total} label="en el banco" />
-              <StatBlock value={globalCycle ? globalCycle.unseen : '…'} label="pendientes ciclo" />
+              <StatBlock value={globalCycle ? globalCycle.unseen : null} label="pendientes ciclo" />
             </div>
           </div>
 
@@ -1436,7 +1452,7 @@ export default function DashboardApp({
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-success to-warning transition-[width] duration-1000 ease-out"
+                    className="anim-bar h-full rounded-full bg-gradient-to-r from-success to-warning transition-[width] duration-1000 ease-out"
                     style={{ width: `${Math.max(pct, pct > 0 ? 2 : 0)}%` }}
                   />
                 </div>
@@ -1618,7 +1634,7 @@ export default function DashboardApp({
 
       {studyStats && studyStats.totalAnswered > 0 && (
         <Card id="section-stats" className="anim-fade-up mb-4" style={{ animationDelay: "240ms" }}>
-          <CardContent className="pt-6">
+          <CardContent>
             <details className="group">
               <summary className="font-display mb-0 flex cursor-pointer list-none items-center gap-2 text-[19px] italic marker:content-none group-open:mb-3.5">
                 <IconChart /> Estadísticas de estudio
@@ -1665,7 +1681,7 @@ export default function DashboardApp({
 
       <div className="flex flex-col gap-4">
         <Card>
-          <CardContent className="pt-6">
+          <CardContent>
             <details className="group">
               <summary className="font-display mb-0 flex cursor-pointer list-none items-center gap-2 text-[19px] italic marker:content-none group-open:mb-3.5">
                 <IconSearch /> Buscar en el banco
@@ -1727,7 +1743,7 @@ export default function DashboardApp({
         </Card>
 
         <Card id="section-history" className="anim-fade-up" style={{ animationDelay: "320ms" }}>
-          <CardContent className="pt-6">
+          <CardContent>
             <details className="group">
               <summary className="font-display mb-0 flex cursor-pointer list-none items-center gap-2 text-[19px] italic marker:content-none group-open:mb-3.5">
                 <IconHistory /> Historial de exámenes

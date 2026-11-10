@@ -35,7 +35,7 @@ export default function StudyInsights({
             </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={coveragePct} aria-valuemin={0} aria-valuemax={100} aria-label="Porcentaje del banco visto">
-            <div className="h-full rounded-full bg-secondary" style={{ width: `${Math.max(coveragePct, coveragePct > 0 ? 2 : 0)}%` }} />
+            <div className="anim-bar h-full rounded-full bg-secondary" style={{ width: `${Math.max(coveragePct, coveragePct > 0 ? 2 : 0)}%` }} />
           </div>
           <p className="mt-2.5 text-[12.5px] leading-relaxed text-muted-foreground">
             Ritmo de las últimas dos semanas: <b className="text-foreground">{cov.newPerDay.toLocaleString('es-ES')}</b> preguntas nuevas al día.
@@ -58,10 +58,10 @@ export default function StudyInsights({
             <strong>Dominio por temas</strong> — del más flojo al más fuerte. Barra = % de aciertos; a la derecha, preguntas vistas del tema.
           </p>
           <div className="flex flex-col gap-3">
-            {stats.topicRows.map(r => {
+            {stats.topicRows.map((r, idx) => {
               const c = tone(r.accuracy);
               return (
-                <div key={r.topic}>
+                <div key={r.topic} className="anim-fade-up" style={{ animationDelay: `${Math.min(idx, 12) * 40}ms` }}>
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <span className="min-w-0 flex-1 truncate text-[13px] font-medium" title={r.topic}>{r.topic}</span>
                     <span className="flex flex-none items-center gap-2">
@@ -72,7 +72,7 @@ export default function StudyInsights({
                     </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={r.accuracy} aria-valuemin={0} aria-valuemax={100} aria-label={`Aciertos en ${r.topic}`}>
-                    <div className={cn('h-full rounded-full', c.bar)} style={{ width: `${Math.max(r.accuracy, 2)}%` }} />
+                    <div className={cn('anim-bar h-full rounded-full', c.bar)} style={{ width: `${Math.max(r.accuracy, 2)}%` }} />
                   </div>
                   <p className="mt-0.5 text-right font-mono text-[11px] text-muted-foreground">
                     {r.seenQuestions}/{r.totalQuestions} vistas · {r.answers} respuestas

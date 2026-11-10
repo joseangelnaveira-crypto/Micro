@@ -29,7 +29,7 @@ export function StatBlock({ value, label }: { value: React.ReactNode; label: str
   return (
     <div className="font-mono">
       <b className="block text-[23px] font-bold leading-none tracking-tight tabular-nums">
-        {typeof value === 'number' ? <AnimatedNumber value={value} /> : value}
+        {value === null ? <span className="skeleton inline-block h-[23px] w-14 align-top" aria-label="Cargando" /> : typeof value === 'number' ? <AnimatedNumber value={value} /> : value}
       </b>
       <span className="text-[10.5px] uppercase tracking-[1px] text-muted-foreground">{label}</span>
     </div>

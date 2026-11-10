@@ -57,7 +57,7 @@ export default function ExamReview({
 
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardContent>
         <h2 className="font-display mb-3 text-[19px] italic">Revisión del examen</h2>
         <div role="tablist" aria-label="Filtro de preguntas" className="mb-4 flex flex-wrap gap-1.5">
           {tabs.map(tab => (
@@ -87,7 +87,7 @@ export default function ExamReview({
           const open = openIds.has(q.id) || filter !== 'todas';
           const status = item.selected === null ? 'blanco' : item.isCorrect ? 'ok' : 'ko';
           return (
-            <div key={q.id + index} className="border-t border-border/60 py-4 first:border-t-0 first:pt-0">
+            <div key={q.id + index} className="anim-fade-up border-t border-border/60 py-4 first:border-t-0 first:pt-0">
               <button
                 type="button"
                 className="flex w-full items-start gap-2.5 text-left"
@@ -115,7 +115,7 @@ export default function ExamReview({
               </button>
 
               {open && (
-                <div className="mt-3 pl-0 sm:pl-[34px]">
+                <div className="anim-fade mt-3 pl-0 sm:pl-[34px]">
                   <div className="flex flex-col gap-1.5">
                     {opts.map(([letter, text]) => {
                       const isCorrect = letter === q.correct;

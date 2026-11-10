@@ -231,6 +231,79 @@ body.dark-mode{
 }
 .card-lift { transition: transform 200ms ease, box-shadow 200ms ease; }
 
+/* Cambio de pregunta: entra deslizando desde la derecha */
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.anim-slide { animation: slide-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Aparición con rebote suave (explicación, iconos de acierto) */
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.94) translateY(6px); }
+  60%  { opacity: 1; transform: scale(1.015); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.anim-pop { animation: pop-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes icon-pop {
+  0%   { transform: scale(0.3) rotate(-25deg); opacity: 0; }
+  70%  { transform: scale(1.25) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+.anim-icon-pop { animation: icon-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* Respuesta incorrecta: sacudida corta */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+.anim-shake { animation: shake 420ms ease-in-out both; }
+
+/* Respuesta correcta: destello verde que se desvanece */
+@keyframes glow-ok {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 55%, transparent); }
+  100% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--success) 0%, transparent); }
+}
+.anim-glow-ok { animation: glow-ok 700ms ease-out both; }
+
+/* Barras de progreso: crecen desde cero al aparecer (el ancho final viene del style en línea) */
+@keyframes bar-grow { from { width: 0; } }
+.anim-bar { animation: bar-grow 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Anillo de la nota: el trazo se dibuja al aparecer (la longitud final viene de --ring-offset) */
+@keyframes ring-draw { from { stroke-dashoffset: var(--ring-len); } }
+.anim-ring { animation: ring-draw 1100ms cubic-bezier(0.22, 1, 0.36, 1) 150ms both; }
+
+/* Manchas de color de las tarjetas destacadas: flotan despacio */
+@keyframes blob-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-10px, 8px) scale(1.08); }
+}
+.anim-float { animation: blob-float 9s ease-in-out infinite; }
+
+/* Punto de la pregunta actual: late suavemente */
+@keyframes dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--secondary) 45%, transparent); }
+  50%      { box-shadow: 0 0 0 5px color-mix(in srgb, var(--secondary) 0%, transparent); }
+}
+.anim-dot { animation: dot-pulse 1.6s ease-in-out infinite; }
+
+/* Esqueleto de carga */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  border-radius: 0.5rem;
+  background: linear-gradient(90deg, var(--muted) 25%, color-mix(in srgb, var(--muted) 40%, var(--card)) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce){
   *{ transition: none !important; animation: none !important; }
   .confetti-piece{ display: none !important; }
